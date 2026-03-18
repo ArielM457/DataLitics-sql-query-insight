@@ -1,0 +1,162 @@
+{
+  "$schema": "https://dataapibuilder.azureedge.net/schemas/v1.1.5/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('TENANT_EMPRESA_B_CONNECTION')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "mode": "development",
+      "cors": {
+        "origins": ["http://localhost:3000"],
+        "allow-credentials": true
+      },
+      "authentication": {
+        "provider": "StaticWebApps"
+      }
+    }
+  },
+  "entities": {
+    "Employees": {
+      "source": "dbo.Employees",
+      "rest": {
+        "path": "/employees"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read",
+              "fields": {
+                "exclude": ["salary", "ssn", "bank_account"]
+              }
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Departments": {
+      "source": "dbo.Departments",
+      "rest": {
+        "path": "/departments"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Salaries": {
+      "source": "dbo.Salaries",
+      "rest": {
+        "path": "/salaries"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read",
+              "fields": {
+                "exclude": ["salary", "ssn", "bank_account"]
+              }
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Performance": {
+      "source": "dbo.Performance",
+      "rest": {
+        "path": "/performance"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
