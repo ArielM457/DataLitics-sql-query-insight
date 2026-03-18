@@ -1,0 +1,91 @@
+# Azure Container Apps — DataAgent Backend Deployment
+# This file defines the Azure Container Apps configuration for
+# deploying the DataAgent backend service.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dataagent-backend
+  labels:
+    app: dataagent-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dataagent-backend
+  template:
+    metadata:
+      labels:
+        app: dataagent-backend
+    spec:
+      containers:
+        - name: dataagent-backend
+          image: dataagent-backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AZURE_OPENAI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: dataagent-secrets
+                  key: AZURE_OPENAI_ENDPOINT
+            - name: AZURE_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dataagent-secrets
+                  key: AZURE_OPENAI_API_KEY
+            - name: AZURE_OPENAI_DEPLOYMENT_NAME
+              value: "gpt-4o"
+            - name: AZURE_SEARCH_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: dataagent-secrets
+                  key: AZURE_SEARCH_ENDPOINT
+            - name: AZURE_SEARCH_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dataagent-secrets
+                  key: AZURE_SEARCH_KEY
+            - name: DAB_BASE_URL
+              value: "http://dab-service:5000"
+            - name: FIREBASE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: dataagent-secrets
+                  key: FIREBASE_PROJECT_ID
+            - name: FRONTEND_URL
+              value: "https://dataagent-frontend.azurecontainerapps.io"
+            - name: ENVIRONMENT
+              value: "production"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 60
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dataagent-backend-service
+spec:
+  selector:
+    app: dataagent-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
