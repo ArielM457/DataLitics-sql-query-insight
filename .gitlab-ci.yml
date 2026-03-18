@@ -1,0 +1,32 @@
+stages:
+  - lint
+  - test
+  - build
+
+lint-backend:
+  stage: lint
+  image: python:3.12-slim
+  script:
+    - pip install flake8
+    - flake8 backend/app --max-line-length=120
+
+lint-frontend:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - cd frontend && npm ci && npm run lint
+
+test-backend:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -r backend/requirements.txt
+    - pytest backend/tests/ -v
+
+build-backend:
+  stage: build
+  image: docker:24
+  script:
+    - docker build -t dataagent-backend ./backend
+  only:
+    - main

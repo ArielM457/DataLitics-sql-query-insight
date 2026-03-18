@@ -1,0 +1,165 @@
+{
+  "$schema": "https://dataapibuilder.azureedge.net/schemas/v1.1.5/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('TENANT_EMPRESA_A_CONNECTION')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "mode": "development",
+      "cors": {
+        "origins": ["http://localhost:3000"],
+        "allow-credentials": true
+      },
+      "authentication": {
+        "provider": "StaticWebApps"
+      }
+    }
+  },
+  "entities": {
+    "Sales": {
+      "source": "dbo.Sales",
+      "rest": {
+        "path": "/sales"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read",
+              "fields": {
+                "exclude": ["internal_notes", "cost_price", "margin"]
+              }
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Customers": {
+      "source": "dbo.Customers",
+      "rest": {
+        "path": "/customers"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read",
+              "fields": {
+                "exclude": ["email", "phone", "address"]
+              }
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Products": {
+      "source": "dbo.Products",
+      "rest": {
+        "path": "/products"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read",
+              "fields": {
+                "exclude": ["supplier_cost"]
+              }
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    },
+    "Stores": {
+      "source": "dbo.Stores",
+      "rest": {
+        "path": "/stores"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
