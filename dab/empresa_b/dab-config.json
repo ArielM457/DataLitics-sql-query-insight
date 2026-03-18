@@ -13,9 +13,9 @@
       "enabled": false
     },
     "host": {
-      "mode": "development",
+      "mode": "production",
       "cors": {
-        "origins": ["http://localhost:3000"],
+        "origins": ["http://localhost:3000", "https://*.azurecontainerapps.io"],
         "allow-credentials": true
       },
       "authentication": {
