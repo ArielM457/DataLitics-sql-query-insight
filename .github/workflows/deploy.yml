@@ -1,0 +1,185 @@
+name: CI/CD — Build and Deploy
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  # -------------------------------------------------------------------------
+  # LINT
+  # -------------------------------------------------------------------------
+
+  lint-backend:
+    name: Lint Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install flake8 && flake8 backend/app --max-line-length=120
+
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd frontend && npm ci && npm run lint
+
+  # -------------------------------------------------------------------------
+  # TEST
+  # -------------------------------------------------------------------------
+
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    needs: lint-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r backend/requirements.txt && pytest backend/tests/ -v
+
+  # -------------------------------------------------------------------------
+  # BUILD — push images to Azure Container Registry
+  # -------------------------------------------------------------------------
+
+  build-and-push:
+    name: Build & Push to ACR
+    runs-on: ubuntu-latest
+    needs: [test-backend, lint-frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to ACR
+        run: |
+          docker login ${{ secrets.ACR_REGISTRY }} \
+            -u ${{ secrets.ACR_USERNAME }} \
+            -p ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push backend
+        run: |
+          docker build \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }} \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-backend:latest \
+            ./backend
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }}
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-backend:latest
+
+      - name: Build and push DAB empresa_a
+        run: |
+          docker build --build-arg TENANT=empresa_a \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:${{ github.sha }} \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:latest \
+            ./dab
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:${{ github.sha }}
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:latest
+
+      - name: Build and push DAB empresa_b
+        run: |
+          docker build --build-arg TENANT=empresa_b \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:${{ github.sha }} \
+            -t ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:latest \
+            ./dab
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:${{ github.sha }}
+          docker push ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:latest
+
+  # -------------------------------------------------------------------------
+  # DEPLOY STAGING — automático en push a develop
+  # -------------------------------------------------------------------------
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: >-
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Update staging Container Apps
+        run: |
+          az containerapp update \
+            --name dataagent-backend-staging \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }}
+
+          az containerapp update \
+            --name dataagent-dab-empresa-a-staging \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:${{ github.sha }}
+
+          az containerapp update \
+            --name dataagent-dab-empresa-b-staging \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:${{ github.sha }}
+
+      - name: Verify /health (staging)
+        run: |
+          BACKEND_URL=$(az containerapp show \
+            --name dataagent-backend-staging \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          echo "Staging URL: https://$BACKEND_URL"
+          curl --fail --retry 5 --retry-delay 10 https://$BACKEND_URL/health
+
+  # -------------------------------------------------------------------------
+  # DEPLOY PROD — requiere aprobación manual (GitHub Environment protection)
+  # -------------------------------------------------------------------------
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    environment: production     # configura "Required reviewers" en este environment
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: >-
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
+      - name: Update production Container Apps
+        run: |
+          az containerapp update \
+            --name dataagent-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }}
+
+          az containerapp update \
+            --name dataagent-dab-empresa-a \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-a:${{ github.sha }}
+
+          az containerapp update \
+            --name dataagent-dab-empresa-b \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-dab-empresa-b:${{ github.sha }}
+
+      - name: Verify /health (production)
+        run: |
+          BACKEND_URL=$(az containerapp show \
+            --name dataagent-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          echo "Production URL: https://$BACKEND_URL"
+          curl --fail --retry 5 --retry-delay 10 https://$BACKEND_URL/health
