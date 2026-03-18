@@ -1,91 +1,115 @@
-# Azure Container Apps — DataAgent Backend Deployment
-# This file defines the Azure Container Apps configuration for
-# deploying the DataAgent backend service.
+# Azure Container Apps — DataAgent Infrastructure Spec
+# Describes all Container Apps deployed for the project.
+# Actual provisioning is done via infra/setup.sh
+# Subsequent deploys are handled by GitLab CI (.gitlab-ci.yml)
+#
+# Services:
+#   - dataagent-backend      (FastAPI, external ingress, port 8000)
+#   - dataagent-dab-empresa-a (DAB, internal ingress, port 5000)
+#   - dataagent-dab-empresa-b (DAB, internal ingress, port 5000)
+#   + staging copies of each (-staging suffix)
+#
+# All services scale to minReplicas: 0 (cost = $0 when idle)
 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
+# ---------------------------------------------------------------------------
+# BACKEND — FastAPI
+# ---------------------------------------------------------------------------
+backend:
   name: dataagent-backend
-  labels:
-    app: dataagent-backend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: dataagent-backend
-  template:
-    metadata:
-      labels:
-        app: dataagent-backend
-    spec:
-      containers:
-        - name: dataagent-backend
-          image: dataagent-backend:latest
-          ports:
-            - containerPort: 8000
-          env:
-            - name: AZURE_OPENAI_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: dataagent-secrets
-                  key: AZURE_OPENAI_ENDPOINT
-            - name: AZURE_OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: dataagent-secrets
-                  key: AZURE_OPENAI_API_KEY
-            - name: AZURE_OPENAI_DEPLOYMENT_NAME
-              value: "gpt-4o"
-            - name: AZURE_SEARCH_ENDPOINT
-              valueFrom:
-                secretKeyRef:
-                  name: dataagent-secrets
-                  key: AZURE_SEARCH_ENDPOINT
-            - name: AZURE_SEARCH_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: dataagent-secrets
-                  key: AZURE_SEARCH_KEY
-            - name: DAB_BASE_URL
-              value: "http://dab-service:5000"
-            - name: FIREBASE_PROJECT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: dataagent-secrets
-                  key: FIREBASE_PROJECT_ID
-            - name: FRONTEND_URL
-              value: "https://dataagent-frontend.azurecontainerapps.io"
-            - name: ENVIRONMENT
-              value: "production"
-          resources:
-            requests:
-              cpu: "250m"
-              memory: "512Mi"
-            limits:
-              cpu: "1000m"
-              memory: "1Gi"
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 60
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: dataagent-backend-service
-spec:
-  selector:
-    app: dataagent-backend
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8000
-  type: ClusterIP
+  image: <ACR_REGISTRY>/dataagent-backend:latest
+  ingress:
+    external: true         # accessible from internet
+    targetPort: 8000
+  scale:
+    minReplicas: 0         # scales to 0 when no traffic
+    maxReplicas: 5
+    rules:
+      - name: http-scaling
+        http:
+          concurrentRequests: 10
+  resources:
+    cpu: 0.25
+    memory: 0.5Gi
+  probes:
+    liveness:
+      path: /health
+      port: 8000
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /health
+      port: 8000
+      initialDelaySeconds: 5
+      periodSeconds: 15
+  env:
+    # Injected from Container App env config — no Key Vault
+    - AZURE_OPENAI_ENDPOINT
+    - AZURE_OPENAI_API_KEY
+    - AZURE_OPENAI_DEPLOYMENT_NAME
+    - AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+    - AZURE_SEARCH_ENDPOINT
+    - AZURE_SEARCH_KEY
+    - AZURE_SEARCH_INDEX_BOOKS
+    - AZURE_SEARCH_INDEX_SCHEMA
+    - AZURE_CONTENT_SAFETY_ENDPOINT
+    - AZURE_CONTENT_SAFETY_KEY
+    - DAB_BASE_URL_EMPRESA_A     # internal FQDN of dataagent-dab-empresa-a
+    - DAB_BASE_URL_EMPRESA_B     # internal FQDN of dataagent-dab-empresa-b
+    - FIREBASE_PROJECT_ID
+    - FIREBASE_SERVICE_ACCOUNT_JSON  # full JSON as single env var (no file path)
+    - FRONTEND_URL
+    - ENVIRONMENT
+
+# ---------------------------------------------------------------------------
+# DAB — empresa_a (Contoso / Sales)
+# ---------------------------------------------------------------------------
+dab-empresa-a:
+  name: dataagent-dab-empresa-a
+  image: <ACR_REGISTRY>/dataagent-dab-empresa-a:latest
+  ingress:
+    external: false        # internal only — only backend can reach it
+    targetPort: 5000
+  scale:
+    minReplicas: 0
+    maxReplicas: 3
+  resources:
+    cpu: 0.25
+    memory: 0.5Gi
+  probes:
+    liveness:
+      path: /health
+      port: 5000
+  env:
+    - TENANT_EMPRESA_A_CONNECTION  # mssql connection string
+
+# ---------------------------------------------------------------------------
+# DAB — empresa_b (RRHH)
+# ---------------------------------------------------------------------------
+dab-empresa-b:
+  name: dataagent-dab-empresa-b
+  image: <ACR_REGISTRY>/dataagent-dab-empresa-b:latest
+  ingress:
+    external: false
+    targetPort: 5000
+  scale:
+    minReplicas: 0
+    maxReplicas: 3
+  resources:
+    cpu: 0.25
+    memory: 0.5Gi
+  probes:
+    liveness:
+      path: /health
+      port: 5000
+  env:
+    - TENANT_EMPRESA_B_CONNECTION
+
+# ---------------------------------------------------------------------------
+# STAGING — same specs, -staging suffix, separate Container Apps Environment
+# ---------------------------------------------------------------------------
+staging:
+  backend:   dataagent-backend-staging
+  dab-a:     dataagent-dab-empresa-a-staging
+  dab-b:     dataagent-dab-empresa-b-staging
+  env:
+    ENVIRONMENT: staging
