@@ -2,6 +2,16 @@ stages:
   - lint
   - test
   - build
+  - deploy-staging
+  - deploy-prod
+
+variables:
+  BACKEND_IMAGE: $ACR_REGISTRY/dataagent-backend
+  DAB_IMAGE: $ACR_REGISTRY/dataagent-dab
+
+# ---------------------------------------------------------------------------
+# LINT
+# ---------------------------------------------------------------------------
 
 lint-backend:
   stage: lint
@@ -16,6 +26,10 @@ lint-frontend:
   script:
     - cd frontend && npm ci && npm run lint
 
+# ---------------------------------------------------------------------------
+# TEST
+# ---------------------------------------------------------------------------
+
 test-backend:
   stage: test
   image: python:3.12-slim
@@ -23,10 +37,130 @@ test-backend:
     - pip install -r backend/requirements.txt
     - pytest backend/tests/ -v
 
+# ---------------------------------------------------------------------------
+# BUILD — push images to Azure Container Registry
+# ---------------------------------------------------------------------------
+
 build-backend:
   stage: build
   image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $ACR_USERNAME -p $ACR_PASSWORD $ACR_REGISTRY
   script:
-    - docker build -t dataagent-backend ./backend
+    - docker build -t $BACKEND_IMAGE:$CI_COMMIT_SHA -t $BACKEND_IMAGE:latest ./backend
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $BACKEND_IMAGE:latest
+  only:
+    - main
+    - develop
+
+build-dab:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - docker login -u $ACR_USERNAME -p $ACR_PASSWORD $ACR_REGISTRY
+  script:
+    # Build image for empresa_a (default demo tenant)
+    - docker build --build-arg TENANT=empresa_a
+        -t $DAB_IMAGE-empresa-a:$CI_COMMIT_SHA
+        -t $DAB_IMAGE-empresa-a:latest ./dab
+    - docker push $DAB_IMAGE-empresa-a:$CI_COMMIT_SHA
+    - docker push $DAB_IMAGE-empresa-a:latest
+    # Build image for empresa_b
+    - docker build --build-arg TENANT=empresa_b
+        -t $DAB_IMAGE-empresa-b:$CI_COMMIT_SHA
+        -t $DAB_IMAGE-empresa-b:latest ./dab
+    - docker push $DAB_IMAGE-empresa-b:$CI_COMMIT_SHA
+    - docker push $DAB_IMAGE-empresa-b:latest
+  only:
+    - main
+    - develop
+
+# ---------------------------------------------------------------------------
+# DEPLOY STAGING — triggered automatically on push to develop
+# ---------------------------------------------------------------------------
+
+deploy-staging:
+  stage: deploy-staging
+  image: mcr.microsoft.com/azure-cli
+  environment:
+    name: staging
+  before_script:
+    - az login --service-principal
+        -u $AZURE_CLIENT_ID
+        -p $AZURE_CLIENT_SECRET
+        --tenant $AZURE_TENANT_ID
+    - az account set --subscription $AZURE_SUBSCRIPTION_ID
+  script:
+    # Update backend
+    - az containerapp update
+        --name dataagent-backend-staging
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $BACKEND_IMAGE:$CI_COMMIT_SHA
+    # Update DAB instances
+    - az containerapp update
+        --name dataagent-dab-empresa-a-staging
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $DAB_IMAGE-empresa-a:$CI_COMMIT_SHA
+    - az containerapp update
+        --name dataagent-dab-empresa-b-staging
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $DAB_IMAGE-empresa-b:$CI_COMMIT_SHA
+    # Verify health
+    - BACKEND_URL=$(az containerapp show
+        --name dataagent-backend-staging
+        --resource-group $AZURE_RESOURCE_GROUP
+        --query properties.configuration.ingress.fqdn -o tsv)
+    - echo "Staging backend URL - https://$BACKEND_URL"
+    - curl --fail --retry 5 --retry-delay 10 https://$BACKEND_URL/health
+  only:
+    - develop
+
+# ---------------------------------------------------------------------------
+# DEPLOY PROD — triggered manually on push to main (safety gate)
+# ---------------------------------------------------------------------------
+
+deploy-prod:
+  stage: deploy-prod
+  image: mcr.microsoft.com/azure-cli
+  environment:
+    name: production
+  when: manual
+  before_script:
+    - az login --service-principal
+        -u $AZURE_CLIENT_ID
+        -p $AZURE_CLIENT_SECRET
+        --tenant $AZURE_TENANT_ID
+    - az account set --subscription $AZURE_SUBSCRIPTION_ID
+  script:
+    # Update backend
+    - az containerapp update
+        --name dataagent-backend
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $BACKEND_IMAGE:$CI_COMMIT_SHA
+    # Update DAB instances
+    - az containerapp update
+        --name dataagent-dab-empresa-a
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $DAB_IMAGE-empresa-a:$CI_COMMIT_SHA
+    - az containerapp update
+        --name dataagent-dab-empresa-b
+        --resource-group $AZURE_RESOURCE_GROUP
+        --image $DAB_IMAGE-empresa-b:$CI_COMMIT_SHA
+    # Verify health
+    - BACKEND_URL=$(az containerapp show
+        --name dataagent-backend
+        --resource-group $AZURE_RESOURCE_GROUP
+        --query properties.configuration.ingress.fqdn -o tsv)
+    - echo "Production backend URL - https://$BACKEND_URL"
+    - curl --fail --retry 5 --retry-delay 10 https://$BACKEND_URL/health
   only:
     - main
