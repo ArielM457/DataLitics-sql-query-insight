@@ -95,7 +95,7 @@ async def connect_company(
             "dab_config": dab_config,
             "next_steps": [
                 f"Add {env_var_name} to the DAB Container App environment variables",
-                f"Deploy DAB container using the generated dab-config above",
+                "Deploy DAB container using the generated dab-config above",
                 f"Add DAB_BASE_URL_{request.tenant_id.upper()} to the backend Container App",
             ],
         }
