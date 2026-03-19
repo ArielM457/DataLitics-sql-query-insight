@@ -18,12 +18,15 @@ class Settings(BaseSettings):
     AZURE_SEARCH_INDEX_BOOKS: str = "books-index"
     AZURE_SEARCH_INDEX_SCHEMA: str = "schema-index"
 
-    # Data API Builder
+    # Data API Builder — per-tenant endpoints
     DAB_BASE_URL: str = "http://localhost:5000"
+    DAB_BASE_URL_EMPRESA_A: str = "http://dataagent-dab-empresa-a"
+    DAB_BASE_URL_EMPRESA_B: str = "http://dataagent-dab-empresa-b"
 
     # Firebase
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_CREDENTIALS_PATH: str = "./firebase-credentials.json"
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string injected via env var
 
     # Application
     FRONTEND_URL: str = "http://localhost:3000"

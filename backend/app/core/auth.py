@@ -1,6 +1,38 @@
 """Firebase Authentication — Token verification and user context extraction."""
 
+import json
+import os
+
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials
 from fastapi import HTTPException
+
+from app.config import settings
+
+_firebase_app = None
+
+
+def _get_firebase_app():
+    """Initialize Firebase Admin SDK once (lazy singleton)."""
+    global _firebase_app
+    if _firebase_app is not None:
+        return _firebase_app
+    try:
+        _firebase_app = firebase_admin.get_app()
+    except ValueError:
+        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+            cred_dict = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+            cred = credentials.Certificate(cred_dict)
+        elif os.path.exists(settings.FIREBASE_CREDENTIALS_PATH):
+            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+        else:
+            raise RuntimeError(
+                "No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT_JSON "
+                "or FIREBASE_CREDENTIALS_PATH in the environment."
+            )
+        _firebase_app = firebase_admin.initialize_app(cred)
+    return _firebase_app
 
 
 async def verify_firebase_token(token: str) -> dict:
@@ -25,18 +57,17 @@ async def verify_firebase_token(token: str) -> dict:
         HTTPException(401): If the token is invalid or expired.
         HTTPException(403): If the token does not contain a tenant_id.
     """
-    # TODO: Issue #10 — Implement Firebase Admin SDK verification
     if not token:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    # Placeholder: decode the token and extract claims
-    decoded_token = None  # firebase_admin.auth.verify_id_token(token)
+    _get_firebase_app()
 
-    if decoded_token is None:
+    try:
+        decoded_token = firebase_auth.verify_id_token(token)
+    except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    tenant_id = None  # decoded_token.get("tenant_id")
-
+    tenant_id = decoded_token.get("tenant_id")
     if not tenant_id:
         raise HTTPException(
             status_code=403,
@@ -45,7 +76,7 @@ async def verify_firebase_token(token: str) -> dict:
 
     return {
         "tenant_id": tenant_id,
-        "role": "",
-        "allowed_tables": [],
-        "restricted_columns": [],
+        "role": decoded_token.get("role", "analyst"),
+        "allowed_tables": decoded_token.get("allowed_tables", []),
+        "restricted_columns": decoded_token.get("restricted_columns", []),
     }
