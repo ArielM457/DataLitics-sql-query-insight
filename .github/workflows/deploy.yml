@@ -115,7 +115,10 @@ jobs:
           az containerapp update \
             --name dataagent-backend-staging \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }}
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }} \
+            --set-env-vars \
+              FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
+              FIREBASE_SERVICE_ACCOUNT_JSON="${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}"
 
           az containerapp update \
             --name dataagent-dab-empresa-a-staging \
@@ -163,7 +166,10 @@ jobs:
           az containerapp update \
             --name dataagent-backend \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }}
+            --image ${{ secrets.ACR_REGISTRY }}/dataagent-backend:${{ github.sha }} \
+            --set-env-vars \
+              FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}" \
+              FIREBASE_SERVICE_ACCOUNT_JSON="${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}"
 
           az containerapp update \
             --name dataagent-dab-empresa-a \
