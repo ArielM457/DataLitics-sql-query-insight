@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { getUserStatus } from "@/lib/mocks/users.mock";
+import { getUserStatus } from "@/lib/api";
 import { Clock, CheckCircle } from "lucide-react";
 
 export default function PendingPage() {
@@ -20,12 +20,21 @@ export default function PendingPage() {
 
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(() => {
-      const latest = getUserStatus(user.uid);
-      if (latest?.status === "approved") {
-        refreshProfile();
+
+    const interval = setInterval(async () => {
+      try {
+        // Poll the real backend endpoint for the latest status
+        const result = await getUserStatus();
+        if (result.status === "approved" || result.status === "active") {
+          // Force-refresh the Firebase token to pick up updated claims
+          await refreshProfile();
+          // The status change will trigger the effect above and redirect to /home
+        }
+      } catch {
+        // silently ignore polling errors
       }
     }, 10000);
+
     return () => clearInterval(interval);
   }, [user, refreshProfile]);
 
