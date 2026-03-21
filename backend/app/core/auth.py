@@ -95,6 +95,7 @@ async def _verify_production(token: str) -> dict:
 
         return {
             "uid": decoded_token.get("uid", ""),
+            "email": decoded_token.get("email", ""),
             "tenant_id": tenant_id,
             "role": decoded_token.get("role", "analyst"),
             "allowed_tables": decoded_token.get("allowed_tables", []),
@@ -117,8 +118,10 @@ def _verify_development(token: str) -> dict:
                 status_code=403,
                 detail="Dev token must include tenant_id",
             )
+        uid = data.get("uid", "dev_user")
         return {
-            "uid": data.get("uid", "dev_user"),
+            "uid": uid,
+            "email": data.get("email", f"{uid}@dev.local"),
             "tenant_id": tenant_id,
             "role": data.get("role", "analyst"),
             "allowed_tables": data.get("allowed_tables", []),
