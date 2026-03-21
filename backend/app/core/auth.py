@@ -25,9 +25,6 @@ _firebase_app = None
 
 if _firebase_configured:
     try:
-        import firebase_admin
-        from firebase_admin import credentials
-
         cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
         _firebase_app = firebase_admin.initialize_app(cred)
         logger.info("Firebase Admin SDK initialized")
