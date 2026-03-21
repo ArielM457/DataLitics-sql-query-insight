@@ -150,7 +150,7 @@ async def test_connect_requires_admin_role():
 async def test_connect_returns_400_when_connection_fails():
     with patch("app.routers.onboarding.verify_firebase_token") as mock_auth, \
          patch("app.routers.onboarding.SchemaInspector.test_connection", return_value=False):
-        mock_auth.return_value = {"tenant_id": "empresa_a", "role": "admin"}
+        mock_auth.return_value = {"tenant_id": "empresa_a", "role": "admin", "uid": "test-uid"}
         response = client.post(
             "/onboarding/connect",
             json={"connection_string": "invalid", "company_name": "Test", "tenant_id": "empresa_a"},
@@ -163,8 +163,9 @@ async def test_connect_returns_400_when_connection_fails():
 async def test_connect_returns_schema_summary_and_dab_config():
     with patch("app.routers.onboarding.verify_firebase_token") as mock_auth, \
          patch("app.routers.onboarding.SchemaInspector.test_connection", return_value=True), \
-         patch("app.routers.onboarding.SchemaInspector.introspect", return_value=SAMPLE_SCHEMA):
-        mock_auth.return_value = {"tenant_id": "empresa_a", "role": "admin"}
+         patch("app.routers.onboarding.SchemaInspector.introspect", return_value=SAMPLE_SCHEMA), \
+         patch("app.routers.onboarding.set_user_claims", return_value=True):
+        mock_auth.return_value = {"tenant_id": "empresa_a", "role": "admin", "uid": "test-uid"}
         response = client.post(
             "/onboarding/connect",
             json={
@@ -181,4 +182,4 @@ async def test_connect_returns_schema_summary_and_dab_config():
     assert data["tables_found"] == 2
     assert "dab_config" in data
     assert "next_steps" in data
-    assert len(data["next_steps"]) == 3
+    assert len(data["next_steps"]) == 4
