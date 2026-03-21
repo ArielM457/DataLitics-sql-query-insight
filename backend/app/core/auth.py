@@ -29,6 +29,7 @@ def _get_firebase_app():
     """Return the initialized Firebase app, or None if not configured."""
     return _firebase_app
 
+
 if _firebase_configured:
     try:
         cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
