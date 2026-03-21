@@ -129,11 +129,11 @@ class AuditStore:
         """
         filtered = self._logs
         if tenant_id:
-            filtered = [l for l in filtered if l["tenant_id"] == tenant_id]
+            filtered = [e for e in filtered if e["tenant_id"] == tenant_id]
         if status:
-            filtered = [l for l in filtered if l["status"] == status]
+            filtered = [e for e in filtered if e["status"] == status]
         if risk_level:
-            filtered = [l for l in filtered if l["risk_level"] == risk_level]
+            filtered = [e for e in filtered if e["risk_level"] == risk_level]
         return list(reversed(filtered))[:limit]
 
     def get_security_metrics(self, tenant_id: str | None = None) -> dict:

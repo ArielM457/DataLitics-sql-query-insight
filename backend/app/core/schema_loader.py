@@ -7,7 +7,6 @@ by reading the dab-config.json files directly.
 
 import json
 import logging
-import os
 from pathlib import Path
 
 logger = logging.getLogger("dataagent.core.schema_loader")

@@ -187,7 +187,7 @@ export default function Chat({ pendingMessage, onPendingConsumed }: ChatProps) {
             <p className="text-brand-mid text-sm max-w-xs">
               Haz una pregunta sobre tus datos. Por ejemplo:{" "}
               <span className="text-brand-dark font-medium italic">
-                "¿Cuáles fueron los productos más vendidos este mes?"
+                &quot;¿Cuáles fueron los productos más vendidos este mes?&quot;
               </span>
             </p>
           </div>

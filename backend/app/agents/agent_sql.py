@@ -32,7 +32,7 @@ from openai import AsyncAzureOpenAI
 
 from app.config import settings
 from app.core.skills import skills_manager
-from app.core.schema_loader import get_schema_description, load_tenant_schema
+from app.core.schema_loader import get_schema_description
 from app.security.context_filter import context_filter
 from app.security.prompt_shields import prompt_shields
 from app.security.risk_analyzer import risk_analyzer
@@ -397,7 +397,10 @@ Generate the SQL query as a JSON object with "sql" and "explanation" fields.
 
     # --- Public API ---
 
-    async def generate(self, intention: dict, schema: dict, tenant_id: str = "", user_role: str = "", restricted_columns: list = None) -> dict:
+    async def generate(
+        self, intention: dict, schema: dict,
+        tenant_id: str = "", user_role: str = "", restricted_columns: list = None,
+    ) -> dict:
         """Generate a validated and secured SQL query from an intention.
 
         Args:
