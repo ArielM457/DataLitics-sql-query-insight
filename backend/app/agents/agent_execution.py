@@ -5,6 +5,38 @@ tenant's database. Implements a Circuit Breaker pattern (via pybreaker)
 to handle DAB service failures gracefully.
 """
 
+from fastapi import HTTPException
+
+from app.config import settings
+
+
+def get_dab_url(tenant_id: str) -> str:
+    """Resolve the DAB base URL for a given tenant.
+
+    This is the core multi-tenant isolation enforcement point.
+    Each tenant maps to a separate, isolated DAB container.
+
+    Args:
+        tenant_id: The tenant identifier extracted from the Firebase token.
+
+    Returns:
+        str: The base URL of the DAB container for the given tenant.
+
+    Raises:
+        HTTPException(403): If tenant_id is not recognized.
+    """
+    dab_urls = {
+        "empresa_a": settings.DAB_BASE_URL_EMPRESA_A,
+        "empresa_b": settings.DAB_BASE_URL_EMPRESA_B,
+    }
+    url = dab_urls.get(tenant_id)
+    if not url:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Unknown tenant: {tenant_id}",
+        )
+    return url
+
 
 class ExecutionAgent:
     """Agent 3: Executes SQL queries through DAB REST API.
@@ -32,5 +64,8 @@ class ExecutionAgent:
                     "error": None,
                 }
         """
+        dab_url = get_dab_url(tenant_id)  # raises 403 for unknown tenant
         # TODO: Issue #15 — Implement DAB REST API execution with Circuit Breaker
-        raise NotImplementedError("Pending implementation - Issue #15")
+        raise NotImplementedError(
+            f"Pending implementation - Issue #15 (dab_url={dab_url})"
+        )

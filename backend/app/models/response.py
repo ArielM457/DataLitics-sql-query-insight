@@ -19,3 +19,15 @@ class HealthResponse(BaseModel):
 
     status: str
     service: str
+
+
+class OnboardingResponse(BaseModel):
+    """Response body for the /onboarding/connect endpoint."""
+
+    status: str
+    tenant_id: str
+    company_name: str
+    tables_found: int
+    schema_summary: dict
+    dab_config: dict
+    next_steps: list
