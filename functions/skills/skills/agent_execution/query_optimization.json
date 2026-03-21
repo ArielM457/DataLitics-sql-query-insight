@@ -1,0 +1,17 @@
+{
+  "id": "exec_001",
+  "title": "Optimizacion de ejecucion de queries",
+  "description": "Mejores practicas para ejecutar queries de forma eficiente: timeouts, limites de filas, paginacion y manejo de errores.",
+  "agent": "agent_execution",
+  "category": "execution",
+  "content": "Mejores practicas para ejecucion segura y eficiente de queries:\n\n**Limites de proteccion:**\n1. Siempre usar TOP/LIMIT para evitar resultados masivos (default: TOP 1000)\n2. Timeout de 30 segundos maximo por query\n3. Limite de 10,000 filas por resultado\n4. Si una query excede estos limites, sugerir filtros adicionales\n\n**Manejo de errores comunes:**\n- Timeout: La query es demasiado compleja o retorna demasiados datos → sugerir filtros\n- Permission denied: El rol del usuario no tiene acceso → verificar permisos en DAB\n- Table not found: La tabla no esta configurada en DAB → verificar dab-config.json\n- Connection refused: DAB no esta corriendo → verificar estado del servicio\n\n**Circuit Breaker:**\n- 5 fallos consecutivos → abrir circuito (rechazar peticiones)\n- Esperar 60 segundos → intentar un request de prueba\n- Si funciona → cerrar circuito y reanudar operacion normal\n- Patron: fail fast en vez de esperar timeouts repetidos\n\n**Retroalimentacion al Agente SQL:**\n- Si DAB retorna error de sintaxis → enviar error al Agente 2 para auto-correccion\n- Si es error de permisos → bloquear (no reintentar)\n- Si es timeout → sugerir simplificar la query",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "8 - Creating Complex Data Sets",
+    "pages": "386-421"
+  },
+  "tags": ["ejecucion", "optimizacion", "timeout", "circuit_breaker", "errores"],
+  "version": 1,
+  "active": true
+}

@@ -1,0 +1,17 @@
+{
+  "id": "sql_008",
+  "title": "Consultas de cohortes y retencion",
+  "description": "Patrones SQL para analisis de cohortes, curvas de retencion, supervivencia y comportamiento de compra recurrente.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Patrones SQL para analisis de cohortes:\n\n**Retencion basica:**\n```sql\nWITH primera_compra AS (\n  SELECT customer_id, MIN(FORMAT(fecha, 'yyyy-MM')) as cohorte\n  FROM Sales GROUP BY customer_id\n),\nactividad AS (\n  SELECT s.customer_id, pc.cohorte,\n    DATEDIFF(month, CAST(pc.cohorte + '-01' as DATE), s.fecha) as periodo\n  FROM Sales s\n  JOIN primera_compra pc ON s.customer_id = pc.customer_id\n)\nSELECT cohorte, periodo,\n  COUNT(DISTINCT customer_id) as clientes_activos\nFROM actividad\nGROUP BY cohorte, periodo\nORDER BY cohorte, periodo\n```\n\n**Tasa de retencion porcentual:**\n```sql\nWITH cohortes AS (\n  -- ... (como arriba)\n),\ntamaño_cohorte AS (\n  SELECT cohorte, COUNT(DISTINCT customer_id) as tamaño\n  FROM cohortes WHERE periodo = 0 GROUP BY cohorte\n)\nSELECT c.cohorte, c.periodo,\n  COUNT(DISTINCT c.customer_id) as activos,\n  ROUND(100.0 * COUNT(DISTINCT c.customer_id) / t.tamaño, 2) as pct_retencion\nFROM cohortes c\nJOIN tamaño_cohorte t ON c.cohorte = t.cohorte\nGROUP BY c.cohorte, c.periodo, t.tamaño\n```\n\n**Churn (abandono):**\n```sql\nSELECT customer_id, MAX(fecha) as ultima_compra,\n  DATEDIFF(day, MAX(fecha), GETDATE()) as dias_sin_compra,\n  CASE WHEN DATEDIFF(day, MAX(fecha), GETDATE()) > 90 THEN 'churned'\n       WHEN DATEDIFF(day, MAX(fecha), GETDATE()) > 30 THEN 'at_risk'\n       ELSE 'active' END as estado\nFROM Sales GROUP BY customer_id\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "4 - Cohort Analysis",
+    "pages": "166-240"
+  },
+  "tags": ["cohortes", "retencion", "churn", "supervivencia", "recurrencia"],
+  "version": 1,
+  "active": true
+}
