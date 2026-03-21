@@ -1,4 +1,15 @@
-"""Firebase Authentication — Token verification and user context extraction."""
+"""Firebase Authentication — Token verification and user context extraction.
+
+Uses the Firebase Admin SDK to verify tokens. When Firebase is not
+configured (M2 not deployed), falls back to a development mode that
+accepts a JSON-encoded token for testing the agent pipeline.
+
+Development mode token format (pass as Bearer token):
+    {"tenant_id": "empresa_a", "role": "analyst"}
+"""
+
+import json
+import logging
 
 import json
 import os
@@ -10,73 +21,103 @@ from fastapi import HTTPException
 
 from app.config import settings
 
+logger = logging.getLogger("dataagent.core.auth")
+
+# Check if Firebase is configured
+_firebase_configured = bool(settings.FIREBASE_PROJECT_ID)
 _firebase_app = None
 
-
-def _get_firebase_app():
-    """Initialize Firebase Admin SDK once (lazy singleton)."""
-    global _firebase_app
-    if _firebase_app is not None:
-        return _firebase_app
+if _firebase_configured:
     try:
-        _firebase_app = firebase_admin.get_app()
-    except ValueError:
-        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
-            cred_dict = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
-            cred = credentials.Certificate(cred_dict)
-        elif os.path.exists(settings.FIREBASE_CREDENTIALS_PATH):
-            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-        else:
-            raise RuntimeError(
-                "No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT_JSON "
-                "or FIREBASE_CREDENTIALS_PATH in the environment."
-            )
+        import firebase_admin
+        from firebase_admin import credentials
+
+        cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
         _firebase_app = firebase_admin.initialize_app(cred)
-    return _firebase_app
+        logger.info("Firebase Admin SDK initialized")
+    except Exception as e:
+        logger.warning("Firebase init failed — using dev mode: %s", e)
+        _firebase_configured = False
+else:
+    logger.info(
+        "Firebase not configured — using development mode. "
+        "Pass a JSON object as Bearer token: "
+        '{\"tenant_id\": \"empresa_a\", \"role\": \"analyst\"}'
+    )
 
 
 async def verify_firebase_token(token: str) -> dict:
     """Verify a Firebase ID token and extract tenant context.
 
-    Uses the Firebase Admin SDK to verify the token's signature and
-    extract the user's tenant information, role, and data permissions.
+    In production: Uses Firebase Admin SDK to verify the token.
+    In development: Accepts a JSON-encoded string with tenant_id and role.
 
     Args:
-        token: The Firebase ID token from the Authorization header.
+        token: The Firebase ID token or dev-mode JSON string.
 
     Returns:
-        dict: User context with the following shape:
-            {
-                "tenant_id": str,
-                "role": str,
-                "allowed_tables": list[str],
-                "restricted_columns": list[str],
-            }
+        dict: User context with tenant_id, role, allowed_tables, restricted_columns.
 
     Raises:
         HTTPException(401): If the token is invalid or expired.
         HTTPException(403): If the token does not contain a tenant_id.
     """
     if not token:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(status_code=401, detail="Missing authentication token")
 
-    _get_firebase_app()
+    if _firebase_configured:
+        return await _verify_production(token)
+    return _verify_development(token)
 
+
+async def _verify_production(token: str) -> dict:
+    """Verify token using Firebase Admin SDK."""
     try:
-        decoded_token = firebase_auth.verify_id_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        from firebase_admin import auth
 
-    tenant_id = decoded_token.get("tenant_id")
-    if not tenant_id:
+        decoded_token = auth.verify_id_token(token)
+
+        tenant_id = decoded_token.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Token does not contain a valid tenant_id",
+            )
+
+        return {
+            "tenant_id": tenant_id,
+            "role": decoded_token.get("role", "analyst"),
+            "allowed_tables": decoded_token.get("allowed_tables", []),
+            "restricted_columns": decoded_token.get("restricted_columns", []),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Firebase token verification failed: %s", e)
+        raise HTTPException(status_code=401, detail="Invalid or expired token") from e
+
+
+def _verify_development(token: str) -> dict:
+    """Parse development mode JSON token."""
+    try:
+        data = json.loads(token)
+        tenant_id = data.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Dev token must include tenant_id",
+            )
+        return {
+            "tenant_id": tenant_id,
+            "role": data.get("role", "analyst"),
+            "allowed_tables": data.get("allowed_tables", []),
+            "restricted_columns": data.get("restricted_columns", []),
+        }
+    except json.JSONDecodeError:
         raise HTTPException(
-            status_code=403,
-            detail="Token does not contain a valid tenant_id",
+            status_code=401,
+            detail=(
+                "Invalid dev token. Pass a JSON object: "
+                '{"tenant_id": "empresa_a", "role": "analyst"}'
+            ),
         )
-
-    return {
-        "tenant_id": tenant_id,
-        "role": decoded_token.get("role", "analyst"),
-        "allowed_tables": decoded_token.get("allowed_tables", []),
-        "restricted_columns": decoded_token.get("restricted_columns", []),
-    }

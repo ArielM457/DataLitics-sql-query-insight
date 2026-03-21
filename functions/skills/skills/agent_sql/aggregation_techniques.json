@@ -1,0 +1,17 @@
+{
+  "id": "sql_001",
+  "title": "Tecnicas de agregacion y GROUP BY",
+  "description": "Guia completa para generar queries con funciones de agregacion: SUM, COUNT, AVG, MIN, MAX con GROUP BY y HAVING.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Para consultas de agregacion, sigue estas mejores practicas:\n\n**Funciones de agregacion:**\n- COUNT(*): total de filas; COUNT(columna): filas no NULL; COUNT(DISTINCT columna): valores unicos\n- SUM(columna): total numerico; AVG(columna): promedio\n- MIN/MAX: valores extremos, funciona con fechas y texto tambien\n\n**Estructura GROUP BY:**\n```sql\nSELECT categoria, COUNT(*) as total, SUM(monto) as suma_total\nFROM Ventas\nGROUP BY categoria\nHAVING COUNT(*) > 10\nORDER BY suma_total DESC\n```\n\n**Reglas importantes:**\n1. Toda columna en SELECT que no sea funcion de agregacion DEBE estar en GROUP BY\n2. Usa HAVING para filtrar DESPUES de agrupar (WHERE filtra ANTES)\n3. Siempre agrega ORDER BY para resultados ordenados\n4. Usa TOP N para limitar resultados cuando hay muchas categorias\n5. Incluye alias descriptivos (AS total_ventas, no AS t)\n\n**Agregacion condicional con CASE:**\n```sql\nSELECT \n  SUM(CASE WHEN estado = 'completado' THEN monto ELSE 0 END) as ventas_completadas,\n  SUM(CASE WHEN estado = 'pendiente' THEN monto ELSE 0 END) as ventas_pendientes\nFROM Ventas\n```\n\n**Percent of total:**\n```sql\nSELECT categoria, SUM(monto) as total,\n  ROUND(100.0 * SUM(monto) / SUM(SUM(monto)) OVER(), 2) as porcentaje\nFROM Ventas GROUP BY categoria\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "2 - Preparing Data for Analysis",
+    "pages": "40-54"
+  },
+  "tags": ["agregacion", "group_by", "having", "count", "sum", "avg"],
+  "version": 1,
+  "active": true
+}

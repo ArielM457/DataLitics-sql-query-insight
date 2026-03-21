@@ -1,0 +1,17 @@
+{
+  "id": "sql_007",
+  "title": "Subqueries y CTEs (Common Table Expressions)",
+  "description": "Organizacion de consultas complejas usando subqueries, CTEs con WITH, y mejores practicas para legibilidad.",
+  "agent": "agent_sql",
+  "category": "sql_organization",
+  "content": "Tecnicas para organizar consultas complejas de forma legible y mantenible:\n\n**CTE basico (WITH):**\n```sql\nWITH ventas_mensuales AS (\n  SELECT FORMAT(fecha, 'yyyy-MM') as mes, SUM(monto) as total\n  FROM Sales\n  GROUP BY FORMAT(fecha, 'yyyy-MM')\n)\nSELECT mes, total,\n  LAG(total) OVER (ORDER BY mes) as mes_anterior\nFROM ventas_mensuales\nORDER BY mes\n```\n\n**CTEs encadenados:**\n```sql\nWITH paso1 AS (\n  SELECT customer_id, SUM(monto) as total_compras\n  FROM Sales GROUP BY customer_id\n),\npaso2 AS (\n  SELECT c.nombre, p.total_compras,\n    NTILE(4) OVER (ORDER BY p.total_compras) as cuartil\n  FROM Customers c JOIN paso1 p ON c.id = p.customer_id\n)\nSELECT cuartil, COUNT(*) as clientes, AVG(total_compras) as promedio\nFROM paso2 GROUP BY cuartil\n```\n\n**Cuando usar cada tecnica:**\n- CTE: consultas que se leen de arriba a abajo, pasos claros, reutilizacion dentro de la query\n- Subquery en FROM: cuando solo se usa una vez y es corta\n- Subquery en WHERE: filtros basados en agregaciones\n  ```sql\n  SELECT * FROM Sales\n  WHERE monto > (SELECT AVG(monto) FROM Sales)\n  ```\n- EXISTS: verificar existencia sin traer datos\n  ```sql\n  SELECT * FROM Customers c\n  WHERE EXISTS (SELECT 1 FROM Sales s WHERE s.customer_id = c.id)\n  ```\n\n**Reglas:**\n1. Preferir CTEs sobre subqueries anidadas para legibilidad\n2. Nombrar CTEs de forma descriptiva (ventas_por_mes, no cte1)\n3. Cada CTE debe hacer UNA cosa (single responsibility)\n4. Limitar a 3-4 CTEs encadenados maximo",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "8 - Creating Complex Data Sets",
+    "pages": "397-421"
+  },
+  "tags": ["cte", "subquery", "with", "organizacion", "complejidad"],
+  "version": 1,
+  "active": true
+}

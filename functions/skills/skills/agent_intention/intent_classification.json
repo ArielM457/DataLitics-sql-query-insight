@@ -1,0 +1,17 @@
+{
+  "id": "intention_001",
+  "title": "Clasificacion de intencion analitica",
+  "description": "Identifica el tipo de analisis que el usuario necesita: agregacion, comparacion, tendencia, distribucion, correlacion o detalle.",
+  "agent": "agent_intention",
+  "category": "analysis_pattern",
+  "content": "Cuando un usuario hace una pregunta, clasifica la intencion en uno de estos patrones analiticos:\n\n1. **Agregacion**: Preguntas con 'total', 'cuantos', 'promedio', 'suma' → usa GROUP BY + funciones de agregacion (SUM, COUNT, AVG)\n2. **Comparacion**: 'comparar', 'diferencia entre', 'vs', 'mejor/peor' → requiere JOIN o UNION para comparar categorias\n3. **Tendencia temporal**: 'tendencia', 'evolucion', 'historico', 'ultimo mes/año' → serie de tiempo con ORDER BY fecha\n4. **Distribucion**: 'distribucion', 'rango', 'percentil', 'histograma' → binning con CASE o funciones de ventana NTILE\n5. **Correlacion**: 'relacion entre', 'impacto de', 'afecta' → JOIN entre tablas + scatter/analisis\n6. **Detalle/Lookup**: 'mostrar', 'listar', 'dame los registros' → SELECT directo con filtros\n7. **Anomalia**: 'inusual', 'atipico', 'outlier', 'fuera de lo normal' → desviacion estandar o percentiles\n\nSiempre identifica las tablas necesarias del esquema y sugiere la tecnica SQL mas apropiada.",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "1 - Analysis with SQL",
+    "pages": "11-31"
+  },
+  "tags": ["clasificacion", "intencion", "patrones", "analisis"],
+  "version": 1,
+  "active": true
+}

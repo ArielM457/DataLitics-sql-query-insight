@@ -1,0 +1,17 @@
+{
+  "id": "sql_006",
+  "title": "Deteccion de anomalias con SQL",
+  "description": "Tecnicas para detectar outliers, valores atipicos y anomalias usando percentiles, desviacion estandar y comparaciones.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Patrones SQL para detectar anomalias en los datos:\n\n**Metodo 1: Desviacion estandar (Z-Score):**\n```sql\nWITH stats AS (\n  SELECT AVG(valor) as media, STDEV(valor) as desviacion\n  FROM tabla\n)\nSELECT t.*, (t.valor - s.media) / NULLIF(s.desviacion, 0) as z_score\nFROM tabla t CROSS JOIN stats s\nWHERE ABS((t.valor - s.media) / NULLIF(s.desviacion, 0)) > 2  -- mas de 2 desviaciones\n```\n\n**Metodo 2: Percentiles (IQR):**\n```sql\nWITH percentiles AS (\n  SELECT \n    PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY valor) OVER() as q1,\n    PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY valor) OVER() as q3\n  FROM tabla\n)\nSELECT t.*\nFROM tabla t CROSS JOIN (SELECT DISTINCT q1, q3 FROM percentiles) p\nWHERE t.valor < p.q1 - 1.5 * (p.q3 - p.q1)\n   OR t.valor > p.q3 + 1.5 * (p.q3 - p.q1)\n```\n\n**Metodo 3: Comparacion con tendencia:**\n```sql\nSELECT fecha, valor,\n  AVG(valor) OVER (ORDER BY fecha ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING) as media_historica,\n  valor - AVG(valor) OVER (ORDER BY fecha ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING) as desviacion\nFROM datos\nORDER BY ABS(valor - AVG(valor) OVER (ORDER BY fecha ROWS BETWEEN 30 PRECEDING AND 1 PRECEDING)) DESC\n```\n\n**Anomalias por ausencia de datos:**\n```sql\n-- Detectar dias sin ventas usando tabla de calendario\nSELECT c.fecha\nFROM Calendario c\nLEFT JOIN Sales s ON c.fecha = CAST(s.fecha as DATE)\nWHERE s.id IS NULL AND c.fecha BETWEEN '2024-01-01' AND GETDATE()\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "6 - Anomaly Detection",
+    "pages": "306-359"
+  },
+  "tags": ["anomalias", "outliers", "z_score", "percentiles", "iqr", "desviacion"],
+  "version": 1,
+  "active": true
+}
