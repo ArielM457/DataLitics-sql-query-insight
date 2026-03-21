@@ -1,0 +1,17 @@
+{
+  "id": "sql_002",
+  "title": "Patrones de JOIN para consultas multi-tabla",
+  "description": "Como generar JOINs correctos entre tablas: INNER, LEFT, RIGHT, CROSS y self-joins con mejores practicas.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Patrones de JOIN para consultas seguras y eficientes:\n\n**Tipos de JOIN y cuando usarlos:**\n- INNER JOIN: solo filas con match en ambas tablas. Usar para relaciones obligatorias\n- LEFT JOIN: todas las filas de la tabla izquierda + matches de la derecha. Usar cuando quieres mantener todos los registros principales\n- RIGHT JOIN: inverso del LEFT. Preferir LEFT JOIN reescribiendo el orden\n- CROSS JOIN: producto cartesiano. CUIDADO: puede generar millones de filas\n\n**Estructura correcta:**\n```sql\nSELECT s.fecha, p.nombre, SUM(s.monto) as total\nFROM Sales s\nINNER JOIN Products p ON s.product_id = p.id\nWHERE s.fecha >= '2024-01-01'\nGROUP BY s.fecha, p.nombre\nORDER BY total DESC\n```\n\n**Reglas de seguridad:**\n1. SIEMPRE especifica la condicion ON — nunca hagas JOIN sin condicion\n2. Usa aliases cortos y consistentes (s para Sales, p para Products)\n3. Califica TODAS las columnas con el alias de tabla (s.id, no solo id)\n4. Verifica que los campos de JOIN tengan el mismo tipo de dato\n5. Con LEFT JOIN, recuerda que columnas de la tabla derecha pueden ser NULL\n\n**Self-JOIN (comparaciones dentro de la misma tabla):**\n```sql\nSELECT a.mes, a.total as actual, b.total as anterior\nFROM VentasMensuales a\nLEFT JOIN VentasMensuales b ON a.mes = DATEADD(month, 1, b.mes)\n```\n\n**JOIN con subquery:**\n```sql\nSELECT c.nombre, sub.total_compras\nFROM Customers c\nINNER JOIN (\n  SELECT customer_id, SUM(monto) as total_compras\n  FROM Sales GROUP BY customer_id\n) sub ON c.id = sub.customer_id\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "3 - Joins and Relationships",
+    "pages": "45-62"
+  },
+  "tags": ["join", "inner", "left", "relaciones", "multi_tabla"],
+  "version": 1,
+  "active": true
+}

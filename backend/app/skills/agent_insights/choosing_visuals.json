@@ -1,0 +1,17 @@
+{
+  "id": "insights_001",
+  "title": "Eleccion del tipo de visualizacion",
+  "description": "Guia para seleccionar el chart correcto segun el tipo de datos y mensaje: bar, line, scatter, table, heatmap, pie.",
+  "agent": "agent_insights",
+  "category": "visualization",
+  "content": "Seleccion del tipo de chart basada en Cole Nussbaumer 'Storytelling with Data':\n\n**Graficos de barras (bar):**\n- Comparar cantidades entre categorias discretas\n- Barras horizontales cuando las etiquetas son largas\n- Siempre empezar el eje Y en cero\n- Ordenar por valor (mayor a menor) a menos que haya orden natural\n- Usar cuando: 'por categoria', 'top N', 'comparar entre'\n\n**Graficos de lineas (line):**\n- Mostrar tendencias a lo largo del tiempo\n- El eje X DEBE ser temporal y continuo\n- Usar cuando hay mas de 5 puntos de datos temporales\n- Maximo 4-5 lineas por grafico\n- Usar cuando: 'tendencia', 'evolucion', 'historico'\n\n**Scatter plots (scatter):**\n- Mostrar relacion entre dos variables numericas\n- Agregar linea de tendencia para hacer explicita la correlacion\n- Usar cuando: 'relacion entre X e Y', 'correlacion'\n\n**Tablas (table):**\n- Cuando el usuario necesita buscar valores especificos\n- Pocos registros (menos de 20)\n- Multiples metricas por fila\n- Usar cuando: 'listar', 'detalle', 'registro por registro'\n\n**Heatmaps (heatmap):**\n- Dos dimensiones categoricas con una metrica\n- Patrones en matrices: dia de semana x hora, producto x region\n- Usar cuando: 'patron por X y Y', 'cruce de dimensiones'\n\n**PIE (evitar en lo posible):**\n- Solo cuando hay 2-3 categorias y el mensaje es la proporcion\n- Un bar chart sorted siempre comunica mejor la misma informacion\n- NUNCA usar con mas de 5 categorias",
+  "source": {
+    "book": "Storytelling with Data",
+    "author": "Cole Nussbaumer Knaflic",
+    "chapter": "2 - Choosing an Effective Visual",
+    "pages": "51-86"
+  },
+  "tags": ["visualizacion", "chart", "bar", "line", "scatter", "tabla", "seleccion"],
+  "version": 1,
+  "active": true
+}

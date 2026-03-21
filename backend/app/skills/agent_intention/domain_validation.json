@@ -1,0 +1,17 @@
+{
+  "id": "intention_004",
+  "title": "Validacion de dominio y fuera de contexto",
+  "description": "Determina si una pregunta esta dentro del dominio de datos disponibles o requiere clarificacion del usuario.",
+  "agent": "agent_intention",
+  "category": "validation",
+  "content": "Reglas para validar si una pregunta esta dentro del dominio:\n\n**Fuera de dominio (marcar fuera_de_dominio=true):**\n- Preguntas que no tienen relacion con datos de negocio (clima, deportes, opiniones)\n- Preguntas sobre tablas que no existen en el esquema del tenant\n- Solicitudes de operaciones no analiticas (enviar emails, crear usuarios)\n- Preguntas que requieren datos externos no disponibles\n\n**Requiere clarificacion (clarificacion_requerida=true):**\n- Terminos ambiguos: 'ventas' podria ser monto, cantidad, o transacciones\n- Periodo no especificado en preguntas donde importa el tiempo\n- Multiples interpretaciones posibles: 'mejores clientes' (por volumen? por frecuencia? por margen?)\n- Referencia a entidades que podrian mapearse a varias tablas\n\n**Formato de clarificacion:**\nSiempre ofrece 2-3 opciones concretas:\n- '¿Te refieres a ventas por monto total o por cantidad de transacciones?'\n- '¿Para que periodo? Ultimo mes, trimestre, o año completo?'\n- '¿Mejores clientes por ingresos generados o por frecuencia de compra?'\n\n**Cross-tenant:**\n- Si un tenant de ventas pregunta sobre RRHH → fuera de dominio\n- Si un tenant de RRHH pregunta sobre ventas → fuera de dominio\n- Verificar siempre contra el esquema real del tenant",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "1 - Analysis with SQL",
+    "pages": "11-21"
+  },
+  "tags": ["validacion", "dominio", "clarificacion", "ambiguedad"],
+  "version": 1,
+  "active": true
+}
