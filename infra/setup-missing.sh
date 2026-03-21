@@ -13,7 +13,7 @@ RESOURCE_GROUP="dataagent-rg"
 LOCATION="eastus"
 
 # SQL — ya existe el server, solo necesitamos las DBs y las credentials
-SQL_SERVER_NAME="dataagent-sqlsrv"
+SQL_SERVER_NAME="dataliticsdb"
 SQL_ADMIN_USER="sqladmin"
 SQL_ADMIN_PASSWORD="DataAgent@2026!"   # ← la misma que usaste antes
 SQL_DB_A="empresa_a"
