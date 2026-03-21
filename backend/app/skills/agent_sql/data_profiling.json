@@ -1,0 +1,17 @@
+{
+  "id": "sql_005",
+  "title": "Perfilado y calidad de datos",
+  "description": "Tecnicas SQL para perfilar datos: distribuciones, histogramas, deteccion de duplicados, valores nulos y limpieza.",
+  "agent": "agent_sql",
+  "category": "data_quality",
+  "content": "Tecnicas de perfilado de datos para entender la calidad antes del analisis:\n\n**Distribucion de frecuencias:**\n```sql\nSELECT columna, COUNT(*) as frecuencia,\n  ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER(), 2) as porcentaje\nFROM tabla\nGROUP BY columna\nORDER BY frecuencia DESC\n```\n\n**Binning (agrupar en rangos):**\n```sql\nSELECT \n  CASE \n    WHEN monto < 100 THEN '0-99'\n    WHEN monto < 500 THEN '100-499'\n    WHEN monto < 1000 THEN '500-999'\n    ELSE '1000+'\n  END as rango,\n  COUNT(*) as total\nFROM Sales\nGROUP BY CASE WHEN monto < 100 THEN '0-99' WHEN monto < 500 THEN '100-499' WHEN monto < 1000 THEN '500-999' ELSE '1000+' END\n```\n\n**Deteccion de duplicados:**\n```sql\nSELECT columna, COUNT(*) as duplicados\nFROM tabla\nGROUP BY columna\nHAVING COUNT(*) > 1\n```\n\n**Analisis de NULLs:**\n```sql\nSELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN columna IS NULL THEN 1 ELSE 0 END) as nulos,\n  ROUND(100.0 * SUM(CASE WHEN columna IS NULL THEN 1 ELSE 0 END) / COUNT(*), 2) as pct_nulos\nFROM tabla\n```\n\n**Estadisticas basicas:**\n```sql\nSELECT \n  COUNT(*) as n, MIN(valor) as minimo, MAX(valor) as maximo,\n  AVG(valor) as promedio, STDEV(valor) as desviacion\nFROM tabla\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "2 - Preparing Data for Analysis",
+    "pages": "43-84"
+  },
+  "tags": ["perfilado", "calidad", "distribucion", "duplicados", "nulos", "histograma"],
+  "version": 1,
+  "active": true
+}

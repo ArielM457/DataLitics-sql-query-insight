@@ -1,0 +1,2 @@
+azure-functions
+openai>=1.58.0

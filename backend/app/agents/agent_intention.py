@@ -1,19 +1,78 @@
 """Intention Agent — Analyzes natural language questions to extract intent.
 
-Uses Semantic Kernel with RAG (Retrieval-Augmented Generation) to search
-through reference books and determine the user's analytical intention,
-including target tables, metrics, filters, time periods, and suggested
-analytical techniques.
+Uses Azure OpenAI GPT-4.1 with dynamic Skills to understand the user's
+analytical intention, including target tables, metrics, filters,
+time periods, and suggested analytical techniques.
+
+Skills are loaded dynamically from JSON files and selected by GPT-4.1
+based on relevance to the user's question. This replaces the static
+RAG system with an editable, improvable knowledge base.
+
+Verifies that referenced tables exist in the tenant's schema and that
+the user's role has access to them. If the question is ambiguous,
+requests clarification with concrete options.
+"""
+
+import json
+import logging
+
+from openai import AsyncAzureOpenAI
+
+from app.config import settings
+from app.core.skills import skills_manager
+from app.core.schema_loader import (
+    get_allowed_tables,
+    get_restricted_columns,
+    get_schema_description,
+    load_tenant_schema,
+)
+
+logger = logging.getLogger("dataagent.agents.intention")
+
+SYSTEM_PROMPT = """You are an expert data analyst assistant. Your job is to analyze a user's
+natural language question and extract the analytical intent so that a SQL query can be generated.
+
+You have access to:
+1. The database schema of the user's organization
+2. Best-practice skills for data analysis
+3. The user's role and data access permissions
+
+Your output MUST be a valid JSON object with this exact structure:
+{
+    "tablas": ["Table1", "Table2"],
+    "metricas": ["metric1", "metric2"],
+    "filtros": [{"campo": "field", "operador": "=", "valor": "value"}],
+    "periodo": "description of time period or empty string",
+    "tecnica_sugerida": "SQL technique to use (e.g., GROUP BY, JOIN, window function)",
+    "clarificacion_requerida": false,
+    "mensaje_clarificacion": "",
+    "fuera_de_dominio": false
+}
+
+Rules:
+- Only reference tables that exist in the provided schema
+- If the question is ambiguous, set clarificacion_requerida to true and provide
+  2-3 concrete options in mensaje_clarificacion
+- If the question is completely outside the data domain, set fuera_de_dominio to true
+- Suggest the most appropriate SQL technique based on the analysis needed
+- Always output valid JSON — no markdown, no extra text
 """
 
 
 class IntentionAgent:
     """Agent 1: Analyzes user questions to determine analytical intent.
 
-    Uses Semantic Kernel + RAG from reference books (e.g., Cole Nussbaumer)
-    to understand the user's question and extract structured metadata
+    Uses Azure OpenAI GPT-4.1 with dynamically selected Skills to
+    understand the user's question and extract structured metadata
     that guides the SQL generation process.
     """
+
+    def __init__(self):
+        self._client = AsyncAzureOpenAI(
+            azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+            api_key=settings.AZURE_OPENAI_API_KEY,
+            api_version="2024-10-21",
+        )
 
     async def analyze(self, question: str, tenant_id: str, user_role: str) -> dict:
         """Analyze a natural language question and extract analytical intent.
@@ -24,15 +83,103 @@ class IntentionAgent:
             user_role: The role of the user (analyst, manager, admin).
 
         Returns:
-            dict: Structured intent with the following shape:
-                {
-                    "tablas": [],
-                    "metricas": [],
-                    "filtros": [],
-                    "periodo": "",
-                    "tecnica_sugerida": "",
-                    "clarificacion_requerida": False,
-                }
+            dict: Structured intent with tables, metrics, filters, period,
+                  suggested technique, and clarification flags.
         """
-        # TODO: Issue #11 — Implement intention analysis with Semantic Kernel + RAG
-        raise NotImplementedError("Pending implementation - Issue #11")
+        logger.info("Analyzing intention: tenant=%s, role=%s", tenant_id, user_role)
+
+        # Gather context
+        schema_desc = get_schema_description(tenant_id, user_role)
+        allowed_tables = get_allowed_tables(tenant_id, user_role)
+        restricted_cols = get_restricted_columns(tenant_id, user_role)
+
+        # Select relevant skills using GPT-4.1
+        selected_skills = await skills_manager.select_relevant_skills(
+            agent="agent_intention",
+            query=question,
+            top=3,
+        )
+        skills_context = skills_manager.format_skills_for_prompt(selected_skills)
+
+        user_message = f"""Question: {question}
+
+--- DATABASE SCHEMA ---
+{schema_desc}
+
+Available tables: {', '.join(allowed_tables)}
+Restricted columns for role '{user_role}': {', '.join(restricted_cols) if restricted_cols else 'None'}
+
+--- ANALYSIS SKILLS ---
+{skills_context}
+
+Analyze the question and return the structured JSON intent.
+"""
+
+        response = await self._client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=0.1,
+            max_tokens=1000,
+            response_format={"type": "json_object"},
+        )
+
+        raw_content = response.choices[0].message.content.strip()
+
+        try:
+            intent = json.loads(raw_content)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse intention JSON: %s", raw_content)
+            intent = {
+                "tablas": [],
+                "metricas": [],
+                "filtros": [],
+                "periodo": "",
+                "tecnica_sugerida": "",
+                "clarificacion_requerida": True,
+                "mensaje_clarificacion": "I could not understand the question. Please rephrase.",
+                "fuera_de_dominio": False,
+            }
+
+        # Validate tables against schema
+        schema = load_tenant_schema(tenant_id)
+        available = [t.lower() for t in schema.get("available_tables", [])]
+        validated_tables = []
+        unknown_tables = []
+
+        for table in intent.get("tablas", []):
+            if table.lower() in available:
+                # Use the original casing from schema
+                matched = next(
+                    t for t in schema["available_tables"] if t.lower() == table.lower()
+                )
+                validated_tables.append(matched)
+            else:
+                unknown_tables.append(table)
+
+        if unknown_tables and not intent.get("fuera_de_dominio"):
+            intent["clarificacion_requerida"] = True
+            intent["mensaje_clarificacion"] = (
+                f"The tables {', '.join(unknown_tables)} do not exist in your database. "
+                f"Available tables are: {', '.join(schema['available_tables'])}. "
+                f"Could you rephrase your question using the available data?"
+            )
+
+        intent["tablas"] = validated_tables
+        intent.setdefault("metricas", [])
+        intent.setdefault("filtros", [])
+        intent.setdefault("periodo", "")
+        intent.setdefault("tecnica_sugerida", "")
+        intent.setdefault("clarificacion_requerida", False)
+        intent.setdefault("mensaje_clarificacion", "")
+        intent.setdefault("fuera_de_dominio", False)
+
+        logger.info(
+            "Intention result: tables=%s, technique=%s, clarification=%s, skills_used=%d",
+            intent["tablas"], intent["tecnica_sugerida"], intent["clarificacion_requerida"],
+            len(selected_skills),
+        )
+
+        return intent
