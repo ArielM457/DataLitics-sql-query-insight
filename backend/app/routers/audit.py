@@ -1,9 +1,15 @@
-"""Audit Router — Query history, security metrics, and export."""
+"""Audit Router — Query history, security metrics, and export.
+
+Provides endpoints for retrieving audit logs, security dashboard
+metrics, and CSV export of query history for compliance.
+"""
 
 import logging
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
+from app.core.audit_store import audit_store
 from app.core.auth import verify_firebase_token
 
 logger = logging.getLogger("dataagent.routers.audit")
@@ -14,28 +20,30 @@ router = APIRouter()
 @router.get("/logs")
 async def get_audit_logs(
     authorization: str = Header(..., description="Bearer {firebase_token}"),
+    status: str | None = Query(None, description="Filter by status"),
+    risk_level: str | None = Query(None, description="Filter by risk level"),
+    limit: int = Query(100, description="Max entries to return"),
 ):
     """Retrieve filterable query audit logs.
 
     Returns the history of all queries executed, including user,
     question, status, risk level, and any security blocks.
-
-    Args:
-        authorization: Bearer token from Firebase Auth.
-
-    Returns:
-        list: Audit log entries.
     """
     try:
         token = authorization.replace("Bearer ", "")
-        await verify_firebase_token(token)
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
 
-        # TODO: Issue #18 — Implement audit log retrieval
-        raise NotImplementedError("Pending implementation - Issue #18")
+        logs = audit_store.get_logs(
+            tenant_id=tenant_id,
+            status=status,
+            risk_level=risk_level,
+            limit=limit,
+        )
+
+        return {"logs": logs, "total": len(logs)}
 
     except HTTPException:
-        raise
-    except NotImplementedError:
         raise
     except Exception as e:
         logger.error("Audit logs retrieval failed: %s", str(e))
@@ -50,23 +58,17 @@ async def get_security_metrics(
 
     Returns aggregated security metrics including blocked threats,
     out-of-context queries, and restricted access attempts.
-
-    Args:
-        authorization: Bearer token from Firebase Auth.
-
-    Returns:
-        dict: Security metrics summary.
     """
     try:
         token = authorization.replace("Bearer ", "")
-        await verify_firebase_token(token)
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
 
-        # TODO: Issue #19 — Implement security metrics dashboard
-        raise NotImplementedError("Pending implementation - Issue #19")
+        metrics = audit_store.get_security_metrics(tenant_id=tenant_id)
+
+        return metrics
 
     except HTTPException:
-        raise
-    except NotImplementedError:
         raise
     except Exception as e:
         logger.error("Security metrics retrieval failed: %s", str(e))
@@ -81,23 +83,23 @@ async def export_audit_csv(
 
     Generates and returns a CSV file containing the complete
     query audit history for the tenant.
-
-    Args:
-        authorization: Bearer token from Firebase Auth.
-
-    Returns:
-        StreamingResponse: CSV file download.
     """
     try:
         token = authorization.replace("Bearer ", "")
-        await verify_firebase_token(token)
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
 
-        # TODO: Issue #18 — Implement CSV export of audit logs
-        raise NotImplementedError("Pending implementation - Issue #18")
+        csv_content = audit_store.export_csv(tenant_id=tenant_id)
+
+        return StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=audit_{tenant_id}.csv"
+            },
+        )
 
     except HTTPException:
-        raise
-    except NotImplementedError:
         raise
     except Exception as e:
         logger.error("CSV export failed: %s", str(e))

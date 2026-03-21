@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Azure OpenAI
     AZURE_OPENAI_ENDPOINT: str = ""
     AZURE_OPENAI_API_KEY: str = ""
-    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4o"
+    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4.1"
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT: str = "text-embedding-3-large"
 
     # Azure AI Search
@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     AZURE_SEARCH_KEY: str = ""
     AZURE_SEARCH_INDEX_BOOKS: str = "books-index"
     AZURE_SEARCH_INDEX_SCHEMA: str = "schema-index"
+
+    # Azure AI Content Safety (Prompt Shields)
+    AZURE_CONTENT_SAFETY_ENDPOINT: str = ""
+    AZURE_CONTENT_SAFETY_KEY: str = ""
+
+    # Skills Azure Function App
+    SKILLS_FUNCTION_APP_URL: str = "http://localhost:7071"
+    SKILLS_FUNCTION_KEY: str = ""
 
     # Data API Builder
     DAB_BASE_URL: str = "http://localhost:5000"
