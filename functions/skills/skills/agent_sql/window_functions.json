@@ -1,0 +1,17 @@
+{
+  "id": "sql_003",
+  "title": "Funciones de ventana (Window Functions)",
+  "description": "Uso de ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, NTILE y funciones de agregacion con OVER para analisis avanzado.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Las funciones de ventana permiten calculos sobre conjuntos de filas sin colapsar el resultado:\n\n**Funciones de ranking:**\n```sql\n-- Top N por categoria\nSELECT *, ROW_NUMBER() OVER (PARTITION BY categoria ORDER BY monto DESC) as rn\nFROM Sales\n-- Luego filtrar WHERE rn <= 10\n\n-- Ranking con empates\nRANK() OVER (ORDER BY monto DESC) -- salta posiciones en empate (1,2,2,4)\nDENSE_RANK() OVER (ORDER BY monto DESC) -- no salta (1,2,2,3)\n```\n\n**Funciones de navegacion (LAG/LEAD):**\n```sql\n-- Comparar con periodo anterior\nSELECT mes, ventas,\n  LAG(ventas, 1) OVER (ORDER BY mes) as ventas_anterior,\n  ventas - LAG(ventas, 1) OVER (ORDER BY mes) as cambio\nFROM VentasMensuales\n\n-- Comparar con siguiente\nLEAD(ventas, 1) OVER (ORDER BY mes) as ventas_siguiente\n```\n\n**Agregaciones con ventana:**\n```sql\n-- Acumulado (running total)\nSUM(monto) OVER (ORDER BY fecha ROWS UNBOUNDED PRECEDING) as acumulado\n\n-- Media movil 7 dias\nAVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as media_movil\n\n-- Porcentaje del total\n100.0 * monto / SUM(monto) OVER () as pct_total\n\n-- Porcentaje dentro de grupo\n100.0 * monto / SUM(monto) OVER (PARTITION BY categoria) as pct_categoria\n```\n\n**NTILE para distribucion:**\n```sql\nNTILE(4) OVER (ORDER BY monto) as cuartil  -- Q1, Q2, Q3, Q4\nNTILE(10) OVER (ORDER BY monto) as decil\n```",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "3 - Time Series Analysis",
+    "pages": "131-165"
+  },
+  "tags": ["window_functions", "lag", "lead", "rank", "row_number", "ntile", "running_total"],
+  "version": 1,
+  "active": true
+}

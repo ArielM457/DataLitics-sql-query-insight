@@ -1,0 +1,17 @@
+{
+  "id": "intention_005",
+  "title": "Deteccion de analisis de cohortes",
+  "description": "Identifica cuando una pregunta requiere analisis de cohortes, retencion, o comportamiento de grupos a lo largo del tiempo.",
+  "agent": "agent_intention",
+  "category": "analysis_pattern",
+  "content": "Las cohortes son grupos de entidades que comparten una caracteristica comun en un momento dado.\n\n**Indicadores de analisis de cohortes:**\n- 'retencion de clientes', 'cuantos vuelven a comprar'\n- 'comportamiento de los clientes que se registraron en enero'\n- 'nuevos vs recurrentes', 'primera compra vs recompra'\n- 'supervivencia', 'tasa de abandono', 'churn'\n- 'por generacion', 'por fecha de registro', 'por primer uso'\n\n**Tablas tipicamente involucradas:**\n- Tabla de hechos (compras, visitas, transacciones)\n- Tabla de entidades (clientes, usuarios, empleados)\n- Se necesita un campo de fecha de 'primera actividad' para definir la cohorte\n\n**Tecnicas SQL:**\n- Definir cohorte: MIN(fecha) OVER (PARTITION BY cliente_id) as fecha_cohorte\n- Calcular periodo: DATEDIFF(month, fecha_cohorte, fecha_actividad) as periodo\n- Retencion: COUNT(DISTINCT cliente_id) por cohorte y periodo\n- Porcentaje: dividir entre el tamaño original de la cohorte\n\n**Sugerir tecnica:** 'cohort_analysis' cuando se detecten estos patrones.",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "4 - Cohort Analysis",
+    "pages": "166-240"
+  },
+  "tags": ["cohortes", "retencion", "churn", "comportamiento", "temporal"],
+  "version": 1,
+  "active": true
+}

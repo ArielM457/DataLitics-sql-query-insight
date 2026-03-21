@@ -1,0 +1,17 @@
+{
+  "id": "exec_002",
+  "title": "Gestion del tamaño de datos y privacidad",
+  "description": "Tecnicas para manejar grandes volumenes de datos: sampling, reduccion de dimensionalidad y proteccion de PII.",
+  "agent": "agent_execution",
+  "category": "data_management",
+  "content": "Estrategias para manejar resultados grandes y proteger datos sensibles:\n\n**Sampling (muestreo):**\n- Para datasets muy grandes, el muestreo permite analisis rapidos con resultados representativos\n- Metodo modular: WHERE id % 10 = 0 (10% de los datos)\n- Metodo TABLESAMPLE: SELECT * FROM tabla TABLESAMPLE (10 PERCENT)\n- Siempre documentar que es una muestra en los resultados\n\n**Reduccion de dimensionalidad:**\n- Agrupar valores poco frecuentes en categoria 'Otros'\n- Redondear fechas a mes/trimestre en vez de dia exacto\n- Truncar campos de texto largos\n- Eliminar columnas no relevantes para el analisis\n\n**Proteccion de PII:**\n- NUNCA retornar campos marcados como restricted: salary, ssn, bank_account, password\n- Si el usuario pide datos sensibles, retornar agregados (AVG, COUNT) en vez de registros individuales\n- Enmascarar parcialmente: LEFT(email, 3) + '***@***'\n- Registrar en audit log cuando se acceden datos sensibles\n\n**Paginacion de resultados:**\n- Primera pagina: TOP 100 resultados\n- Si el usuario necesita mas: OFFSET/FETCH para paginacion\n- Siempre informar total de filas disponibles vs retornadas",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "8 - Managing Data Set Size and Privacy",
+    "pages": "412-421"
+  },
+  "tags": ["tamaño", "sampling", "pii", "privacidad", "paginacion"],
+  "version": 1,
+  "active": true
+}
