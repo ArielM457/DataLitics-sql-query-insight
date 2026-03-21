@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.models.response import HealthResponse
-from app.routers import audit, onboarding, query
+from app.routers import audit, onboarding, query, skills
 
 # Logging configuration
 logging.basicConfig(
@@ -66,3 +66,4 @@ async def health_check():
 app.include_router(query.router, prefix="/query", tags=["Query"])
 app.include_router(onboarding.router, prefix="/onboarding", tags=["Onboarding"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
+app.include_router(skills.router, tags=["Skills"])

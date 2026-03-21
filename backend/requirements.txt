@@ -4,7 +4,6 @@ pydantic>=2.10.0
 pydantic-settings>=2.7.0
 python-dotenv>=1.0.1
 firebase-admin>=6.6.0
-azure-ai-contentsafety>=1.0.0
 azure-search-documents>=11.6.0
 azure-identity>=1.19.0
 openai>=1.58.0
