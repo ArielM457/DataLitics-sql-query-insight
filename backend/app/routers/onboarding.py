@@ -1,11 +1,19 @@
-"""Onboarding Router — Tenant connection and schema management."""
+"""Onboarding Router — Tenant connection, schema management, and connection test.
+
+Endpoints:
+    POST /onboarding/connect         — Connect a new company DB + generate DAB config
+    POST /onboarding/test            — Test a connection string (no DB write)
+    GET  /onboarding/schema/{id}     — Retrieve the current schema for a tenant
+"""
 
 import logging
 import os
+import time
 
 from fastapi import APIRouter, Header, HTTPException
+from pydantic import BaseModel
 
-from app.core.auth import verify_firebase_token
+from app.core.auth import set_user_claims, verify_firebase_token
 from app.core.dab_generator import DabConfigGenerator
 from app.core.schema_inspector import SchemaInspector
 from app.models.request import OnboardingRequest
@@ -14,6 +22,42 @@ logger = logging.getLogger("dataagent.routers.onboarding")
 
 router = APIRouter()
 
+
+class TestConnectionRequest(BaseModel):
+    connection_string: str
+
+
+# ─── POST /onboarding/test ────────────────────────────────────────────────────
+
+@router.post("/test")
+async def test_connection(
+    request: TestConnectionRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Test a connection string without saving any configuration.
+
+    Used by the /join form to validate the DB credentials before submitting.
+    Returns latency in ms on success.
+    """
+    token = authorization.replace("Bearer ", "")
+    # Only need to be authenticated, not admin (just testing a connection)
+    await verify_firebase_token(token)
+
+    start = time.time()
+    inspector = SchemaInspector(request.connection_string)
+    ok = inspector.test_connection()
+    latency_ms = round((time.time() - start) * 1000)
+
+    if not ok:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot connect to the database. Verify the connection string.",
+        )
+
+    return {"success": True, "latency_ms": latency_ms}
+
+
+# ─── POST /onboarding/connect ─────────────────────────────────────────────────
 
 @router.post("/connect")
 async def connect_company(
@@ -26,7 +70,8 @@ async def connect_company(
     auto-detects sensitive columns (salary, ssn, etc.), and generates a
     ready-to-deploy dab-config.json with role-based permissions.
 
-    Requires admin role.
+    Requires admin role. After successful connection, updates the admin's
+    Firebase custom claims with the real tenant_id (replacing pending_onboarding).
 
     Args:
         request: Connection details — connection_string, company_name, tenant_id.
@@ -45,7 +90,11 @@ async def connect_company(
                 detail="Only admin users can onboard new companies",
             )
 
-        logger.info("Onboarding request from tenant=%s", user_context["tenant_id"])
+        uid = user_context["uid"]
+        logger.info(
+            "Onboarding request from uid=%s (current tenant=%s) → new tenant=%s",
+            uid, user_context["tenant_id"], request.tenant_id,
+        )
 
         inspector = SchemaInspector(request.connection_string)
 
@@ -80,10 +129,18 @@ async def connect_company(
             for table, info in schema.items()
         }
 
+        # Update admin's custom claims with the real tenant_id
+        claims_updated = await set_user_claims(uid, {
+            "role": "admin",
+            "tenant_id": request.tenant_id,
+            "status": "active",
+            "allowed_tables": [],
+            "restricted_columns": [],
+        })
+
         logger.info(
-            "Onboarding complete for tenant=%s — %d tables found",
-            request.tenant_id,
-            len(schema),
+            "Onboarding complete for tenant=%s — %d tables found, claims_updated=%s",
+            request.tenant_id, len(schema), claims_updated,
         )
 
         return {
@@ -93,10 +150,12 @@ async def connect_company(
             "tables_found": len(schema),
             "schema_summary": schema_summary,
             "dab_config": dab_config,
+            "claims_updated": claims_updated,
             "next_steps": [
                 f"Add {env_var_name} to the DAB Container App environment variables",
                 "Deploy DAB container using the generated dab-config above",
                 f"Add DAB_BASE_URL_{request.tenant_id.upper()} to the backend Container App",
+                "Refresh your Firebase token in the app to get the updated tenant_id",
             ],
         }
 
@@ -106,6 +165,8 @@ async def connect_company(
         logger.error("Onboarding failed: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
+
+# ─── GET /onboarding/schema/{tenant_id} ──────────────────────────────────────
 
 @router.get("/schema/{tenant_id}")
 async def get_schema(

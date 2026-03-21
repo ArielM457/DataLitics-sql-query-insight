@@ -34,7 +34,7 @@ const INPUT_MONO = `${INPUT} font-mono`;
 
 export default function JoinPage() {
   const router = useRouter();
-  const { user, loading, setMockProfile } = useAuth();
+  const { user, loading, setMockProfile, refreshProfile } = useAuth();
   const [step, setStep] = useState<Step>("form");
   const [errorMsg, setErrorMsg] = useState("");
   const [progress, setProgress] = useState(0);
@@ -100,12 +100,18 @@ export default function JoinPage() {
         tenant_id: tenantId,
       });
 
-      setProgress(100);
+      setProgress(90);
 
+      // Force-refresh the Firebase token to pick up the updated tenant_id claim
+      // that the backend set after successful onboarding
       if (user) {
+        await user.getIdToken(true);
+        await refreshProfile();
+        // Fallback for dev mode (no Firebase claims)
         setMockProfile(user.uid, "admin", tenantId, "active");
       }
 
+      setProgress(100);
       setStep("success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error al conectar la base de datos.";
