@@ -1,46 +1,92 @@
 "use client";
 
-// TODO: Issue #19 — Connect with /audit/security endpoint
+import { useEffect, useState } from "react";
+import { getSecurityMetrics } from "@/lib/api";
+import { ShieldAlert, AlertCircle, Lock, TrendingDown } from "lucide-react";
 
-interface MetricCard {
-  title: string;
-  value: number;
-  description: string;
+interface SecurityMetrics {
+  blocked_threats: number;
+  out_of_context_queries: number;
+  restricted_access_attempts: number;
 }
 
-const metrics: MetricCard[] = [
+const METRIC_CONFIG = [
   {
-    title: "Blocked Threats",
-    value: 0,
-    description: "Prompt injection and jailbreak attempts blocked",
+    key: "blocked_threats" as keyof SecurityMetrics,
+    title: "Amenazas Bloqueadas",
+    description: "Intentos de prompt injection y jailbreak bloqueados",
+    icon: ShieldAlert,
+    color: "text-red-600",
+    bg: "bg-red-50",
+    border: "border-red-100",
   },
   {
-    title: "Out-of-Context Queries",
-    value: 0,
-    description: "Queries blocked for accessing unauthorized data",
+    key: "out_of_context_queries" as keyof SecurityMetrics,
+    title: "Consultas Fuera de Contexto",
+    description: "Queries bloqueadas por acceso a datos no autorizados",
+    icon: AlertCircle,
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
   },
   {
-    title: "Restricted Access",
-    value: 0,
-    description: "Attempts to access restricted columns or tables",
+    key: "restricted_access_attempts" as keyof SecurityMetrics,
+    title: "Accesos Restringidos",
+    description: "Intentos de acceder a columnas o tablas restringidas",
+    icon: Lock,
+    color: "text-brand-dark",
+    bg: "bg-brand-light/40",
+    border: "border-brand-light",
   },
 ];
 
 export default function Dashboard() {
+  const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    getSecurityMetrics()
+      .then((data) => setMetrics(data))
+      .catch(() => setError(true));
+  }, []);
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Security Dashboard</h2>
+      <div className="flex items-center gap-2">
+        <TrendingDown size={18} className="text-brand-dark" />
+        <h2 className="text-lg font-semibold text-brand-deepest">Panel de Seguridad</h2>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+          <span>Métricas de seguridad no disponibles — backend no conectado aún.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4">
-        {metrics.map((metric, i) => (
-          <div key={i} className="border rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500">
-              {metric.title}
-            </h3>
-            <p className="text-3xl font-bold mt-1">{metric.value}</p>
-            <p className="text-sm text-gray-400 mt-1">{metric.description}</p>
-          </div>
-        ))}
+        {METRIC_CONFIG.map((m) => {
+          const Icon = m.icon;
+          return (
+            <div
+              key={m.key}
+              className={`border ${m.border} ${m.bg} rounded-2xl p-4 card-hover shadow-card`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-brand-deepest/80">{m.title}</p>
+                  <p className={`text-3xl font-bold mt-1 ${m.color}`}>
+                    {metrics ? metrics[m.key].toLocaleString() : "—"}
+                  </p>
+                  <p className="text-xs text-brand-dark/60 mt-1">{m.description}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-xl ${m.bg} border ${m.border} flex items-center justify-center shrink-0`}>
+                  <Icon size={18} className={m.color} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

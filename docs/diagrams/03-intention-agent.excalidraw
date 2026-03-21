@@ -1,0 +1,158 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "title", "type": "text", "x": 100, "y": 15, "width": 700, "height": 40,
+      "angle": 0, "strokeColor": "#1e293b", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 1, "version": 1, "versionNonce": 1, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Módulo: Intention Agent — Issue #11",
+      "fontSize": 24, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "containerId": null, "originalText": "Módulo: Intention Agent — Issue #11", "lineHeight": 1.25
+    },
+    {
+      "id": "input", "type": "rectangle", "x": 30, "y": 90, "width": 200, "height": 100,
+      "angle": 0, "strokeColor": "#1d4ed8", "backgroundColor": "#dbeafe",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 3},
+      "seed": 2, "version": 1, "versionNonce": 2, "isDeleted": false,
+      "boundElements": [{"type": "text", "id": "input_t"}], "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "input_t", "type": "text", "x": 30, "y": 105, "width": 200, "height": 70,
+      "angle": 0, "strokeColor": "#1d4ed8", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 3, "version": 1, "versionNonce": 3, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Input\nquestion: str\ntenant_id: str\nuser_role: str",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "containerId": "input", "originalText": "Input\nquestion: str\ntenant_id: str\nuser_role: str", "lineHeight": 1.25
+    },
+    {
+      "id": "arr1", "type": "arrow", "x": 232, "y": 140, "width": 100, "height": 0,
+      "angle": 0, "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 2},
+      "seed": 4, "version": 1, "versionNonce": 4, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "points": [[0, 0], [100, 0]], "lastCommittedPoint": null,
+      "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow"
+    },
+    {
+      "id": "rag_step", "type": "rectangle", "x": 335, "y": 80, "width": 200, "height": 120,
+      "angle": 0, "strokeColor": "#5b21b6", "backgroundColor": "#ede9fe",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 3},
+      "seed": 5, "version": 1, "versionNonce": 5, "isDeleted": false,
+      "boundElements": [{"type": "text", "id": "rag_t"}], "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "rag_t", "type": "text", "x": 335, "y": 95, "width": 200, "height": 90,
+      "angle": 0, "strokeColor": "#5b21b6", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 6, "version": 1, "versionNonce": 6, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Paso 1: RAG\nRAGClient.search_books()\nBusca metodologías\nanalíticas relevantes",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "containerId": "rag_step", "originalText": "Paso 1: RAG\nRAGClient.search_books()\nBusca metodologías\nanalíticas relevantes", "lineHeight": 1.25
+    },
+    {
+      "id": "arr2", "type": "arrow", "x": 537, "y": 140, "width": 100, "height": 0,
+      "angle": 0, "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 2},
+      "seed": 7, "version": 1, "versionNonce": 7, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "points": [[0, 0], [100, 0]], "lastCommittedPoint": null,
+      "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow"
+    },
+    {
+      "id": "sk_step", "type": "rectangle", "x": 640, "y": 80, "width": 200, "height": 120,
+      "angle": 0, "strokeColor": "#5b21b6", "backgroundColor": "#ede9fe",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 3},
+      "seed": 8, "version": 1, "versionNonce": 8, "isDeleted": false,
+      "boundElements": [{"type": "text", "id": "sk_t"}], "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "sk_t", "type": "text", "x": 640, "y": 95, "width": 200, "height": 90,
+      "angle": 0, "strokeColor": "#5b21b6", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 9, "version": 1, "versionNonce": 9, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Paso 2: Semantic Kernel\n+ Azure OpenAI GPT-4o\nAnaliza pregunta con\ncontexto RAG",
+      "fontSize": 13, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "containerId": "sk_step", "originalText": "Paso 2: Semantic Kernel\n+ Azure OpenAI GPT-4o\nAnaliza pregunta con\ncontexto RAG", "lineHeight": 1.25
+    },
+    {
+      "id": "output", "type": "rectangle", "x": 200, "y": 300, "width": 500, "height": 140,
+      "angle": 0, "strokeColor": "#065f46", "backgroundColor": "#d1fae5",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 3},
+      "seed": 10, "version": 1, "versionNonce": 10, "isDeleted": false,
+      "boundElements": [{"type": "text", "id": "output_t"}], "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "output_t", "type": "text", "x": 200, "y": 315, "width": 500, "height": 110,
+      "angle": 0, "strokeColor": "#065f46", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 11, "version": 1, "versionNonce": 11, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Output: dict de intención\n{\n  tablas: [],          metricas: [],\n  filtros: [],         periodo: str,\n  tecnica_sugerida: str,\n  clarificacion_requerida: bool\n}",
+      "fontSize": 13, "fontFamily": 2, "textAlign": "left", "verticalAlign": "middle",
+      "containerId": "output", "originalText": "Output: dict de intención\n{\n  tablas: [],          metricas: [],\n  filtros: [],         periodo: str,\n  tecnica_sugerida: str,\n  clarificacion_requerida: bool\n}", "lineHeight": 1.25
+    },
+    {
+      "id": "arr_out", "type": "arrow", "x": 740, "y": 202, "width": 0, "height": 98,
+      "angle": 0, "strokeColor": "#065f46", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 2},
+      "seed": 12, "version": 1, "versionNonce": 12, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "points": [[0, 0], [0, 98]], "lastCommittedPoint": null,
+      "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow"
+    },
+    {
+      "id": "next", "type": "rectangle", "x": 200, "y": 490, "width": 500, "height": 60,
+      "angle": 0, "strokeColor": "#065f46", "backgroundColor": "#d1fae5",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "dashed", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 3},
+      "seed": 13, "version": 1, "versionNonce": 13, "isDeleted": false,
+      "boundElements": [{"type": "text", "id": "next_t"}], "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "next_t", "type": "text", "x": 200, "y": 505, "width": 500, "height": 30,
+      "angle": 0, "strokeColor": "#065f46", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": null,
+      "seed": 14, "version": 1, "versionNonce": 14, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "→ Pasa a Agent 2: SQL Agent (agent_sql.py)",
+      "fontSize": 14, "fontFamily": 1, "textAlign": "center", "verticalAlign": "middle",
+      "containerId": "next", "originalText": "→ Pasa a Agent 2: SQL Agent (agent_sql.py)", "lineHeight": 1.25
+    },
+    {
+      "id": "arr_next", "type": "arrow", "x": 450, "y": 442, "width": 0, "height": 48,
+      "angle": 0, "strokeColor": "#374151", "backgroundColor": "transparent",
+      "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 0,
+      "opacity": 100, "groupIds": [], "frameId": null, "roundness": {"type": 2},
+      "seed": 15, "version": 1, "versionNonce": 15, "isDeleted": false,
+      "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "points": [[0, 0], [0, 48]], "lastCommittedPoint": null,
+      "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow"
+    }
+  ],
+  "appState": {
+    "gridSize": null,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}

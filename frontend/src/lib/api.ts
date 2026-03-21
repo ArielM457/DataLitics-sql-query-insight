@@ -1,15 +1,25 @@
 /**
  * API Client — Axios instance with Firebase Auth interceptor.
  *
- * Provides a pre-configured Axios instance that automatically
- * attaches the Firebase ID token to all requests heading to the
- * DataAgent backend API.
+ * Estado actual: usando MOCKS para desarrollo local.
+ *
+ * ─── PARA CONECTAR AL BACKEND REAL ──────────────────────────────────────────
+ *  1. Asegurarte de que NEXT_PUBLIC_API_URL apunta al backend desplegado.
+ *  2. En cada función, comentar la línea "return mock...()" y descomentar
+ *     la llamada real de Axios que aparece debajo.
+ *  3. El interceptor de Axios (línea ~30) ya adjunta el token Firebase
+ *     automáticamente — no hay nada más que configurar en auth.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 
 import axios from "axios";
 import { auth } from "@/lib/firebase";
+import { mockQueryAgent } from "@/lib/mocks/query.mock";
+import { mockGetAuditLogs } from "@/lib/mocks/audit.mock";
+import { mockGetSecurityMetrics } from "@/lib/mocks/security.mock";
+import { mockConnectOnboarding, mockTestConnection } from "@/lib/mocks/onboarding.mock";
 
-// Create Axios instance with backend base URL
+// Axios instance apuntando al backend
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
   headers: {
@@ -17,7 +27,8 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: attach Firebase ID token
+// Interceptor: adjunta el token Firebase a cada request
+// (ya funcionará en cuanto el usuario esté logueado con Firebase Auth)
 api.interceptors.request.use(
   async (config) => {
     const user = auth.currentUser;
@@ -27,37 +38,72 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-/**
- * Send a natural language question to the DataAgent backend.
- * @param question - The user's question in natural language.
- * @returns The query response with SQL, data, and insights.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// queryAgent — POST /query
+// ─────────────────────────────────────────────────────────────────────────────
 export async function queryAgent(question: string) {
-  const response = await api.post("/query", { question });
-  return response.data;
+  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
+  return mockQueryAgent(question);
+
+  // ✅ REAL — descomentar cuando el backend esté disponible
+  // const response = await api.post("/query", { question });
+  // return response.data;
 }
 
-/**
- * Retrieve audit logs from the backend.
- * @returns List of audit log entries.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// getAuditLogs — GET /audit/logs
+// ─────────────────────────────────────────────────────────────────────────────
 export async function getAuditLogs() {
-  const response = await api.get("/audit/logs");
-  return response.data;
+  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
+  return mockGetAuditLogs();
+
+  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #18)
+  // const response = await api.get("/audit/logs");
+  // return response.data;
 }
 
-/**
- * Retrieve security metrics from the backend.
- * @returns Security metrics summary.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// getSecurityMetrics — GET /audit/security
+// ─────────────────────────────────────────────────────────────────────────────
 export async function getSecurityMetrics() {
-  const response = await api.get("/audit/security");
-  return response.data;
+  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
+  return mockGetSecurityMetrics();
+
+  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #19)
+  // const response = await api.get("/audit/security");
+  // return response.data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// connectOnboarding — POST /onboarding/connect
+// ─────────────────────────────────────────────────────────────────────────────
+export async function connectOnboarding(payload: {
+  company_name: string;
+  connection_string: string;
+  tenant_id: string;
+}) {
+  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
+  return mockConnectOnboarding(payload);
+
+  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #23)
+  // Requiere que el usuario tenga rol "admin" en Firebase Auth custom claims
+  // const response = await api.post("/onboarding/connect", payload);
+  // return response.data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// testConnection — POST /onboarding/test
+// ─────────────────────────────────────────────────────────────────────────────
+export async function testConnection(connectionString: string) {
+  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
+  return mockTestConnection(connectionString);
+
+  // ✅ REAL — descomentar cuando el backend esté disponible
+  // const response = await api.post("/onboarding/test", { connection_string: connectionString });
+  // return response.data;
 }
 
 export default api;

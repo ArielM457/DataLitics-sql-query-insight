@@ -3,15 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #f4f7f9;
+  --foreground: #003B52;
+  --brand-light: #D9E1E7;
+  --brand-mid: #8FAAB4;
+  --brand-dark: #20566D;
+  --brand-deepest: #003B52;
 }
 
 html,
@@ -23,7 +20,7 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,4 +34,76 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #D9E1E7;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: #8FAAB4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #20566D;
+}
+
+/* Glass card effect */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(143, 170, 180, 0.3);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #20566D, #003B52);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0, 59, 82, 0.14);
+}
+
+/* Smooth focus ring */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(32, 86, 109, 0.25);
+}
+
+/* Animated underline */
+.nav-link-active {
+  position: relative;
+}
+.nav-link-active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #20566D;
+  border-radius: 1px;
+}
+
+/* Subtle background pattern */
+.bg-dots {
+  background-image: radial-gradient(#8FAAB4 1px, transparent 1px);
+  background-size: 24px 24px;
 }
