@@ -1,0 +1,17 @@
+{
+  "id": "insights_004",
+  "title": "Narrativa y storytelling con datos",
+  "description": "Como construir una narrativa convincente con datos: contexto, tension, resolucion y llamada a la accion.",
+  "agent": "agent_insights",
+  "category": "storytelling",
+  "content": "Estructura narrativa para comunicar insights de datos (Cole Nussbaumer):\n\n**Estructura de 3 actos:**\n1. **Contexto (Setup)**: ¿Que esta pasando? ¿Cual es la situacion actual?\n   - 'Las ventas totales del Q1 fueron $345,000 distribuidas en 5 categorias'\n2. **Tension (Conflict)**: ¿Que es interesante, sorprendente o preocupante?\n   - 'Sin embargo, el 43% proviene de una sola categoria (Laptop), creando riesgo de concentracion'\n3. **Resolucion (Resolution)**: ¿Que deberiamos hacer al respecto?\n   - 'Recomendamos diversificar invirtiendo en promocion de categorias sub-representadas'\n\n**Formato del summary:**\n- Linea 1: El dato mas importante (el 'so what')\n- Linea 2: Contexto que explica por que importa\n- Linea 3: Implicacion o accion sugerida\n\n**Formato de findings:**\n- Cada finding debe ser una oracion completa con numero especifico\n- MAL: 'Laptop tiene buenas ventas'\n- BIEN: 'Laptop lidera con $150,000 (43% del total), 3x mas que la segunda categoria'\n\n**Formato de recommendations:**\n- Verbo de accion + que hacer + por que\n- MAL: 'Mejorar las ventas de teclados'\n- BIEN: 'Lanzar una promocion de bundles (teclado + mouse) para incrementar el ticket promedio de accesorios, que actualmente es 4x menor que el de laptops'\n\n**Follow-up question:**\n- Debe profundizar el analisis, no repetirlo\n- Guiar al usuario hacia el siguiente nivel de detalle\n- '¿Como se comparan estas ventas por producto con el mismo trimestre del año anterior?'",
+  "source": {
+    "book": "Storytelling with Data",
+    "author": "Cole Nussbaumer Knaflic",
+    "chapter": "7 - Lessons in Storytelling",
+    "pages": "181-202"
+  },
+  "tags": ["storytelling", "narrativa", "summary", "findings", "recommendations"],
+  "version": 1,
+  "active": true
+}
