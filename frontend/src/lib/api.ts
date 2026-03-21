@@ -1,23 +1,15 @@
 /**
  * API Client — Axios instance with Firebase Auth interceptor.
  *
- * Estado actual: usando MOCKS para desarrollo local.
- *
- * ─── PARA CONECTAR AL BACKEND REAL ──────────────────────────────────────────
- *  1. Asegurarte de que NEXT_PUBLIC_API_URL apunta al backend desplegado.
- *  2. En cada función, comentar la línea "return mock...()" y descomentar
- *     la llamada real de Axios que aparece debajo.
- *  3. El interceptor de Axios (línea ~30) ya adjunta el token Firebase
- *     automáticamente — no hay nada más que configurar en auth.
- * ────────────────────────────────────────────────────────────────────────────
+ * Todos los endpoints reales del backend están conectados.
+ * Las métricas de seguridad (getAuditLogs, getSecurityMetrics) siguen en mock
+ * mientras otros miembros del equipo terminan esa parte del backend.
  */
 
 import axios from "axios";
 import { auth } from "@/lib/firebase";
-import { mockQueryAgent } from "@/lib/mocks/query.mock";
 import { mockGetAuditLogs } from "@/lib/mocks/audit.mock";
 import { mockGetSecurityMetrics } from "@/lib/mocks/security.mock";
-import { mockConnectOnboarding, mockTestConnection } from "@/lib/mocks/onboarding.mock";
 
 // Axios instance apuntando al backend
 const api = axios.create({
@@ -28,7 +20,6 @@ const api = axios.create({
 });
 
 // Interceptor: adjunta el token Firebase a cada request
-// (ya funcionará en cuanto el usuario esté logueado con Firebase Auth)
 api.interceptors.request.use(
   async (config) => {
     const user = auth.currentUser;
@@ -45,34 +36,26 @@ api.interceptors.request.use(
 // queryAgent — POST /query
 // ─────────────────────────────────────────────────────────────────────────────
 export async function queryAgent(question: string) {
-  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
-  return mockQueryAgent(question);
-
-  // ✅ REAL — descomentar cuando el backend esté disponible
-  // const response = await api.post("/query", { question });
-  // return response.data;
+  const response = await api.post("/query", { question });
+  return response.data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // getAuditLogs — GET /audit/logs
+// 🔴 MOCK: pendiente de activar cuando el equipo termine el backend de auditoría
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getAuditLogs() {
-  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
   return mockGetAuditLogs();
-
-  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #18)
   // const response = await api.get("/audit/logs");
   // return response.data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // getSecurityMetrics — GET /audit/security
+// 🔴 MOCK: pendiente de activar cuando el equipo termine el backend de seguridad
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getSecurityMetrics() {
-  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
   return mockGetSecurityMetrics();
-
-  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #19)
   // const response = await api.get("/audit/security");
   // return response.data;
 }
@@ -85,25 +68,96 @@ export async function connectOnboarding(payload: {
   connection_string: string;
   tenant_id: string;
 }) {
-  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
-  return mockConnectOnboarding(payload);
-
-  // ✅ REAL — descomentar cuando el backend esté disponible (Issue #23)
-  // Requiere que el usuario tenga rol "admin" en Firebase Auth custom claims
-  // const response = await api.post("/onboarding/connect", payload);
-  // return response.data;
+  const response = await api.post("/onboarding/connect", payload);
+  return response.data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // testConnection — POST /onboarding/test
 // ─────────────────────────────────────────────────────────────────────────────
 export async function testConnection(connectionString: string) {
-  // 🔴 MOCK ACTIVO — comentar esta línea cuando el backend esté listo
-  return mockTestConnection(connectionString);
+  const response = await api.post("/onboarding/test", {
+    connection_string: connectionString,
+  });
+  return response.data;
+}
 
-  // ✅ REAL — descomentar cuando el backend esté disponible
-  // const response = await api.post("/onboarding/test", { connection_string: connectionString });
-  // return response.data;
+// ─────────────────────────────────────────────────────────────────────────────
+// Users — Registration and status
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function registerAdmin() {
+  const response = await api.post("/users/register/admin");
+  return response.data;
+}
+
+export async function registerAnalyst(payload: {
+  invite_code: string;
+  name: string;
+  email: string;
+}) {
+  const response = await api.post("/users/register/analyst", payload);
+  return response.data;
+}
+
+export async function getUserStatus() {
+  const response = await api.get("/users/status");
+  return response.data as { uid: string; status: string; tenant_id?: string; company_name?: string };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin management — Invite codes and user approval
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function createInviteCode(expiresInMs: number) {
+  const response = await api.post("/admin/invite-codes", {
+    expires_in_ms: expiresInMs,
+  });
+  return response.data as {
+    code: string;
+    tenant_id: string;
+    company_name: string;
+    created_by: string;
+    created_at: number;
+    expires_at: number;
+    used: boolean;
+  };
+}
+
+export async function getInviteCodesAPI() {
+  const response = await api.get("/admin/invite-codes");
+  return response.data as Array<{
+    code: string;
+    tenant_id: string;
+    company_name: string;
+    created_by: string;
+    created_at: number;
+    expires_at: number;
+    used: boolean;
+  }>;
+}
+
+export async function getPendingUsersAPI() {
+  const response = await api.get("/admin/pending-users");
+  return response.data as Array<{
+    uid: string;
+    email: string;
+    name: string;
+    tenant_id: string;
+    company_name: string;
+    requested_at: number;
+    status: string;
+  }>;
+}
+
+export async function approveUserAPI(uid: string) {
+  const response = await api.post(`/admin/approve/${uid}`);
+  return response.data;
+}
+
+export async function rejectUserAPI(uid: string) {
+  const response = await api.post(`/admin/reject/${uid}`);
+  return response.data;
 }
 
 export default api;

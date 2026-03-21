@@ -5,24 +5,21 @@
  *
  * Gestiona: usuario Firebase, rol, tenant_id y estado de aprobación.
  *
- * ─── ROLES ───────────────────────────────────────────────────────────────────
- *  "admin"   → Ve: Chat, Dashboard, Audit, Onboarding, Admin (users)
- *  "analyst" → Ve: Chat únicamente
- *  null      → No autenticado → redirige a /
+ * ─── ESTRATEGIA DE CARGA DE PERFIL ───────────────────────────────────────────
+ *  1. Intenta leer los custom claims del token Firebase (producción).
+ *     El backend los establece al registrar/aprobar usuarios.
+ *  2. Si no hay claims (dev local sin Firebase configurado), hace fallback
+ *     a localStorage para poder desarrollar localmente.
  *
- * ─── CUANDO EL BACKEND ESTÉ LISTO ───────────────────────────────────────────
- *  Actualmente el rol y tenant_id se guardan en localStorage (mock).
- *  Cuando el backend implemente Firebase custom claims (Issue #04), reemplazar
- *  la lectura de localStorage por:
- *    const tokenResult = await user.getIdTokenResult();
- *    const role = tokenResult.claims.role ?? "analyst";
- *    const tenantId = tokenResult.claims.tenant_id ?? null;
- *  El interceptor de Axios en api.ts ya envía el token — solo cambiar lectura aquí.
- * ────────────────────────────────────────────────────────────────────────────
+ * ─── PARA FORZAR ACTUALIZACIÓN DE CLAIMS ─────────────────────────────────────
+ *  Llamar refreshProfile() después de cualquier operación del backend que
+ *  modifique los claims (registerAdmin, registerAnalyst, approveUser, connect).
+ *  Internamente usa getIdTokenResult(true) para forzar refresh del token.
  */
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -40,9 +37,10 @@ interface AuthState {
   tenantId: string | null;
   status: UserStatus;
   loading: boolean;
-  // Actualiza el perfil en localStorage (mock) — eliminar cuando custom claims estén activos
+  /** Force-refresh Firebase token and re-read claims. Call after backend operations that set claims. */
+  refreshProfile: () => Promise<void>;
+  /** Dev/fallback: write profile to localStorage. Kept for local development. */
   setMockProfile: (uid: string, role: UserRole, tenantId: string, status: UserStatus) => void;
-  refreshProfile: () => void;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -51,20 +49,20 @@ const AuthContext = createContext<AuthState>({
   tenantId: null,
   status: null,
   loading: true,
+  refreshProfile: async () => {},
   setMockProfile: () => {},
-  refreshProfile: () => {},
 });
 
-// ─── helpers de localStorage (mock) ──────────────────────────────────────────
+// ─── localStorage helpers (dev / fallback) ────────────────────────────────────
 const STORAGE_KEY = "dataagent_profile";
 
-interface MockProfile {
+interface LocalProfile {
   role: UserRole;
   tenantId: string | null;
   status: UserStatus;
 }
 
-function readProfile(uid: string): MockProfile {
+function readLocalProfile(uid: string): LocalProfile {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY}_${uid}`);
     if (raw) return JSON.parse(raw);
@@ -72,7 +70,7 @@ function readProfile(uid: string): MockProfile {
   return { role: "analyst", tenantId: null, status: "pending" };
 }
 
-function writeProfile(uid: string, profile: MockProfile) {
+function writeLocalProfile(uid: string, profile: LocalProfile) {
   localStorage.setItem(`${STORAGE_KEY}_${uid}`, JSON.stringify(profile));
 }
 
@@ -85,47 +83,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<UserStatus>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = (u: User) => {
-    // 🔴 MOCK — leer de localStorage
-    const profile = readProfile(u.uid);
-    setRole(profile.role);
-    setTenantId(profile.tenantId);
-    setStatus(profile.status);
+  /**
+   * Load user profile from Firebase custom claims (production) or
+   * localStorage (dev fallback).
+   *
+   * @param u - Firebase user object
+   * @param forceRefresh - if true, forces a token refresh to get latest claims
+   */
+  const loadProfile = useCallback(async (u: User, forceRefresh = false) => {
+    try {
+      const tokenResult = await u.getIdTokenResult(forceRefresh);
+      const claimsRole = tokenResult.claims.role as UserRole | undefined;
+      const claimsTenantId = tokenResult.claims.tenant_id as string | undefined;
+      const claimsStatus = tokenResult.claims.status as UserStatus | undefined;
 
-    // ✅ REAL — descomentar cuando custom claims estén configurados (Issue #04):
-    // u.getIdTokenResult(true).then((result) => {
-    //   setRole((result.claims.role as UserRole) ?? "analyst");
-    //   setTenantId((result.claims.tenant_id as string) ?? null);
-    //   setStatus("active"); // backend controla acceso via claims
-    // });
-  };
-
-  const setMockProfile = (
-    uid: string,
-    r: UserRole,
-    t: string,
-    s: UserStatus
-  ) => {
-    // Siempre escribe en localStorage para el uid indicado
-    writeProfile(uid, { role: r, tenantId: t, status: s });
-    // Solo actualiza el estado React si es el usuario actual
-    // (evita que el admin sobreescriba su propio rol al aprobar a otro usuario)
-    if (uid === user?.uid) {
-      setRole(r);
-      setTenantId(t);
-      setStatus(s);
+      if (claimsRole) {
+        // Production: use Firebase custom claims
+        setRole(claimsRole);
+        setTenantId(claimsTenantId ?? null);
+        // If status claim not set explicitly, active users are... active
+        setStatus(claimsStatus ?? "active");
+      } else {
+        // Dev / fallback: read from localStorage
+        const profile = readLocalProfile(u.uid);
+        setRole(profile.role);
+        setTenantId(profile.tenantId);
+        setStatus(profile.status);
+      }
+    } catch {
+      // If token refresh fails, fallback to localStorage
+      const profile = readLocalProfile(u.uid);
+      setRole(profile.role);
+      setTenantId(profile.tenantId);
+      setStatus(profile.status);
     }
-  };
+  }, []);
 
-  const refreshProfile = () => {
-    if (user) loadProfile(user);
-  };
+  /**
+   * Force-refresh the Firebase token and re-read claims.
+   * Call this after any backend operation that sets custom claims.
+   */
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      await loadProfile(user, true);
+    }
+  }, [user, loadProfile]);
+
+  /**
+   * Write a profile to localStorage (dev / fallback).
+   * Also updates React state if the uid matches the current user.
+   */
+  const setMockProfile = useCallback(
+    (uid: string, r: UserRole, t: string, s: UserStatus) => {
+      writeLocalProfile(uid, { role: r, tenantId: t, status: s });
+      if (uid === user?.uid) {
+        setRole(r);
+        setTenantId(t);
+        setStatus(s);
+      }
+    },
+    [user]
+  );
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
-        loadProfile(u);
+        await loadProfile(u, false);
       } else {
         setRole(null);
         setTenantId(null);
@@ -134,11 +158,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadProfile]);
 
   return (
     <AuthContext.Provider
-      value={{ user, role, tenantId, status, loading, setMockProfile, refreshProfile }}
+      value={{ user, role, tenantId, status, loading, refreshProfile, setMockProfile }}
     >
       {children}
     </AuthContext.Provider>

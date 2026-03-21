@@ -4,14 +4,33 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
-  generateInviteCode,
-  getInviteCodes,
-  getPendingUsers,
-  updateUserStatus,
-  type InviteCode,
-  type PendingUser,
-} from "@/lib/mocks/users.mock";
-import { Key, Users, Copy, Check, UserCheck, UserX, Clock } from "lucide-react";
+  createInviteCode,
+  getInviteCodesAPI,
+  getPendingUsersAPI,
+  approveUserAPI,
+  rejectUserAPI,
+} from "@/lib/api";
+import { Key, Users, Copy, Check, UserCheck, UserX, Clock, Loader2 } from "lucide-react";
+
+interface InviteCode {
+  code: string;
+  tenant_id: string;
+  company_name: string;
+  created_by: string;
+  created_at: number;
+  expires_at: number;
+  used: boolean;
+}
+
+interface PendingUser {
+  uid: string;
+  email: string;
+  name: string;
+  tenant_id: string;
+  company_name: string;
+  requested_at: number;
+  status: string;
+}
 
 const EXPIRY_OPTIONS = [
   { label: "15 minutos", ms: 15 * 60 * 1000 },
@@ -23,7 +42,7 @@ const EXPIRY_OPTIONS = [
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, loading, role, tenantId, setMockProfile } = useAuth();
+  const { user, loading, role, tenantId } = useAuth();
 
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [pending, setPending] = useState<PendingUser[]>([]);
@@ -31,14 +50,20 @@ export default function AdminPage() {
   const [newCode, setNewCode] = useState<InviteCode | null>(null);
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<"codes" | "users">("codes");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const companyName = pending[0]?.companyName ?? tenantId ?? "Tu empresa";
-
-  const refresh = useCallback(() => {
-    if (!tenantId) return;
-    setCodes(getInviteCodes(tenantId));
-    setPending(getPendingUsers(tenantId));
-  }, [tenantId]);
+  const refresh = useCallback(async () => {
+    try {
+      const [codesData, usersData] = await Promise.all([
+        getInviteCodesAPI(),
+        getPendingUsersAPI(),
+      ]);
+      setCodes(codesData);
+      setPending(usersData);
+    } catch {
+      // silently ignore fetch errors — user sees empty lists
+    }
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -47,11 +72,17 @@ export default function AdminPage() {
     refresh();
   }, [user, loading, role, router, refresh]);
 
-  const handleGenerate = () => {
-    if (!tenantId) return;
-    const code = generateInviteCode(tenantId, companyName, expiryMs);
-    setNewCode(code);
-    refresh();
+  const handleGenerate = async () => {
+    setActionLoading("generate");
+    try {
+      const code = await createInviteCode(expiryMs);
+      setNewCode(code);
+      await refresh();
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const handleCopy = (code: string) => {
@@ -60,20 +91,34 @@ export default function AdminPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleApprove = (pendingUser: PendingUser) => {
-    updateUserStatus(pendingUser.uid, "approved");
-    setMockProfile(pendingUser.uid, "analyst", pendingUser.tenantId, "active");
-    refresh();
+  const handleApprove = async (pendingUser: PendingUser) => {
+    setActionLoading(pendingUser.uid);
+    try {
+      await approveUserAPI(pendingUser.uid);
+      await refresh();
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleReject = (uid: string) => {
-    updateUserStatus(uid, "rejected");
-    refresh();
+  const handleReject = async (uid: string) => {
+    setActionLoading(uid);
+    try {
+      await rejectUserAPI(uid);
+      await refresh();
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const isExpired = (code: InviteCode) => Date.now() > code.expiresAt;
+  const isExpired = (code: InviteCode) => Date.now() > code.expires_at * 1000;
   const timeLeft = (expiresAt: number) => {
-    const diff = expiresAt - Date.now();
+    // expiresAt from backend is a Unix timestamp in seconds (Python time.time())
+    const diff = expiresAt * 1000 - Date.now();
     if (diff <= 0) return "Expirado";
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
@@ -136,9 +181,14 @@ export default function AdminPage() {
               </select>
               <button
                 onClick={handleGenerate}
-                className="flex items-center gap-1.5 bg-brand-dark text-white px-4 py-1.5 rounded-xl text-sm font-medium hover:bg-brand-deepest transition-all"
+                disabled={actionLoading === "generate"}
+                className="flex items-center gap-1.5 bg-brand-dark text-white px-4 py-1.5 rounded-xl text-sm font-medium hover:bg-brand-deepest disabled:opacity-50 transition-all"
               >
-                <Key size={14} />
+                {actionLoading === "generate" ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Key size={14} />
+                )}
                 Generar código
               </button>
             </div>
@@ -152,7 +202,7 @@ export default function AdminPage() {
                   </p>
                   <p className="text-xs text-brand-mid mt-1 flex items-center gap-1">
                     <Clock size={11} />
-                    Expira en: {timeLeft(newCode.expiresAt)}
+                    Expira en: {timeLeft(newCode.expires_at)}
                   </p>
                 </div>
                 <button
@@ -198,7 +248,7 @@ export default function AdminPage() {
                           <Badge color="green">Activo</Badge>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-brand-mid">{timeLeft(c.expiresAt)}</td>
+                      <td className="px-5 py-3 text-brand-mid">{timeLeft(c.expires_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -233,7 +283,7 @@ export default function AdminPage() {
                       <p className="font-semibold text-brand-deepest">{u.name}</p>
                       <p className="text-brand-mid text-xs mt-0.5">{u.email}</p>
                     </td>
-                    <td className="px-5 py-4 text-brand-dark/70">{u.companyName}</td>
+                    <td className="px-5 py-4 text-brand-dark/70">{u.company_name}</td>
                     <td className="px-5 py-4">
                       {u.status === "pending" && <Badge color="amber">Pendiente</Badge>}
                       {u.status === "approved" && <Badge color="green">Aprobado</Badge>}
@@ -244,14 +294,20 @@ export default function AdminPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleApprove(u)}
-                            className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors"
+                            disabled={actionLoading === u.uid}
+                            className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
                           >
-                            <UserCheck size={12} />
+                            {actionLoading === u.uid ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <UserCheck size={12} />
+                            )}
                             Aprobar
                           </button>
                           <button
                             onClick={() => handleReject(u.uid)}
-                            className="flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                            disabled={actionLoading === u.uid}
+                            className="flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition-colors"
                           >
                             <UserX size={12} />
                             Rechazar

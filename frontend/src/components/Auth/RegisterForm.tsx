@@ -5,14 +5,14 @@ import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { validateInviteCode, markCodeUsed, addPendingUser } from "@/lib/mocks/users.mock";
+import { registerAdmin, registerAnalyst } from "@/lib/api";
 import { User, Building2, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 
 type AccountType = "employee" | "company" | null;
 
 export default function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
   const router = useRouter();
-  const { setMockProfile } = useAuth();
+  const { refreshProfile, setMockProfile } = useAuth();
 
   const [accountType, setAccountType] = useState<AccountType>(null);
   const [name, setName] = useState("");
@@ -33,30 +33,54 @@ export default function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
 
     try {
       if (accountType === "employee") {
-        const validation = validateInviteCode(inviteCode);
-        if (!validation.valid) { setError(validation.reason); setLoading(false); return; }
-
+        // 1. Create Firebase user
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         if (name.trim()) await updateProfile(user, { displayName: name.trim() });
 
-        markCodeUsed(inviteCode);
+        try {
+          // 2. Register with backend (validates invite code + sets pending claims)
+          const result = await registerAnalyst({
+            invite_code: inviteCode,
+            name: name.trim() || email,
+            email,
+          });
 
-        addPendingUser({
-          uid: user.uid,
-          email: user.email!,
-          name: name.trim() || user.email!,
-          tenantId: validation.data.tenantId,
-          companyName: validation.data.companyName,
-        });
+          // 3. Force-refresh token to pick up new claims
+          await refreshProfile();
 
-        setMockProfile(user.uid, "analyst", validation.data.tenantId, "pending");
+          // Fallback for dev mode (no Firebase claims)
+          if (result.tenant_id) {
+            setMockProfile(user.uid, "analyst", result.tenant_id, "pending");
+          }
+        } catch (backendErr: unknown) {
+          const detail = (backendErr as { response?: { data?: { detail?: string } } })
+            ?.response?.data?.detail;
+          setError(detail ?? "Error al validar el código de invitación.");
+          setLoading(false);
+          return;
+        }
+
         router.push("/pending");
 
       } else if (accountType === "company") {
+        // 1. Create Firebase user
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
         if (name.trim()) await updateProfile(user, { displayName: name.trim() });
 
-        setMockProfile(user.uid, "admin", "", "active");
+        try {
+          // 2. Register as admin with backend (sets initial claims: role=admin)
+          await registerAdmin();
+
+          // 3. Force-refresh token to pick up new claims
+          await refreshProfile();
+
+          // Fallback for dev mode (no Firebase claims)
+          setMockProfile(user.uid, "admin", "", "active");
+        } catch {
+          // If backend call fails, still let them proceed (dev mode fallback)
+          setMockProfile(user.uid, "admin", "", "active");
+        }
+
         router.push("/join");
       }
     } catch (err: unknown) {
