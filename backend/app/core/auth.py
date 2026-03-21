@@ -11,6 +11,12 @@ Development mode token format (pass as Bearer token):
 import json
 import logging
 
+import json
+import os
+
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials
 from fastapi import HTTPException
 
 from app.config import settings
