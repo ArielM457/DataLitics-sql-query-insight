@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
-  title: "DataAgent — AI Data Analysis",
+  title: "DataLitics — AI Data Analysis",
   description:
-    "Multi-agent system that converts natural language questions to SQL queries, executes them securely, and explains the results.",
+    "Consulta tus datos empresariales en lenguaje natural. Multi-agente, seguro y sin SQL.",
 };
 
 export default function RootLayout({
@@ -13,8 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="es">
+      <body className="bg-gray-50 min-h-screen">
+        <AuthProvider>
+          <NavBar />
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
