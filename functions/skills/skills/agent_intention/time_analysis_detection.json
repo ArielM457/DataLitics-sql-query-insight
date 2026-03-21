@@ -1,0 +1,17 @@
+{
+  "id": "intention_003",
+  "title": "Deteccion de analisis temporal",
+  "description": "Identifica cuando una pregunta requiere analisis de series de tiempo y determina el periodo y granularidad apropiados.",
+  "agent": "agent_intention",
+  "category": "temporal_analysis",
+  "content": "Detecta patrones temporales en las preguntas del usuario:\n\n**Indicadores de analisis temporal:**\n- Periodos explicitos: 'ultimo mes', 'este año', 'Q1 2024', 'ultimos 30 dias'\n- Tendencias: 'tendencia', 'evolucion', 'crecimiento', 'como ha cambiado'\n- Comparaciones: 'mes a mes', 'año contra año', 'vs periodo anterior'\n- Estacionalidad: 'por mes', 'por trimestre', 'patron estacional'\n\n**Granularidad sugerida:**\n- Pregunta sobre dias → granularidad diaria (DATE)\n- Pregunta sobre semanas/meses → granularidad mensual (MONTH/YEAR)\n- Pregunta sobre años → granularidad anual (YEAR)\n- Si no especifica, usar la granularidad que de entre 10-30 puntos de datos\n\n**Tecnicas SQL recomendadas:**\n- Tendencia simple: GROUP BY periodo + ORDER BY periodo\n- Comparacion YoY: LAG() con PARTITION BY mes ORDER BY año\n- Acumulado: SUM() OVER (ORDER BY fecha ROWS UNBOUNDED PRECEDING)\n- Media movil: AVG() OVER (ORDER BY fecha ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)\n- Estacionalidad: GROUP BY MONTH(fecha) comparando multiples años\n\n**Filtros de fecha:**\n- 'reciente' o 'ultimo' → WHERE fecha >= DATEADD(periodo, -N, GETDATE())\n- 'este año' → WHERE YEAR(fecha) = YEAR(GETDATE())\n- 'entre X y Y' → WHERE fecha BETWEEN @inicio AND @fin",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "3 - Time Series Analysis",
+    "pages": "85-165"
+  },
+  "tags": ["temporal", "series_tiempo", "tendencias", "fechas", "periodos"],
+  "version": 1,
+  "active": true
+}
