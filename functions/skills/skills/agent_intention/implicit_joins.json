@@ -1,0 +1,17 @@
+{
+  "id": "intention_002",
+  "title": "Deteccion de JOINs implicitos en preguntas",
+  "description": "Detecta cuando una pregunta del usuario requiere datos de multiples tablas aunque no lo mencione explicitamente.",
+  "agent": "agent_intention",
+  "category": "query_planning",
+  "content": "Muchas preguntas de negocio implican JOINs sin mencionarlos:\n\n**Patrones de deteccion:**\n- 'ventas por categoria de producto' → JOIN Sales + Products (tabla de hechos + dimension)\n- 'empleados por departamento' → JOIN Employees + Departments\n- 'clientes que compraron X' → JOIN Customers + Sales + Products\n- 'ingresos por region' → JOIN Sales + Customers/Stores (tabla geografica)\n\n**Reglas para identificar JOINs implicitos:**\n1. Si la pregunta menciona un atributo que no existe en la tabla principal → necesita JOIN\n2. Si pide 'por categoria/tipo/grupo' y esos campos estan en tabla separada → JOIN con tabla de dimension\n3. Si combina metricas de diferentes dominios (ventas + costos) → posible JOIN entre tablas de hechos\n4. Palabras clave: 'por', 'de cada', 'segun', 'agrupado por' a menudo implican JOIN con tabla de dimension\n\n**Tecnicas de JOIN recomendadas:**\n- INNER JOIN: cuando necesitas solo registros que existen en ambas tablas\n- LEFT JOIN: cuando necesitas todos los registros de la tabla principal sin importar si hay match\n- Self-JOIN: comparaciones dentro de la misma tabla (ej: ventas mes actual vs anterior)",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "3 - Joins and Relationships",
+    "pages": "45-62"
+  },
+  "tags": ["joins", "implicitos", "relaciones", "tablas"],
+  "version": 1,
+  "active": true
+}

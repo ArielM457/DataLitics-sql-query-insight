@@ -1,0 +1,17 @@
+{
+  "id": "sql_004",
+  "title": "Queries de series de tiempo y tendencias",
+  "description": "Patrones SQL para analisis temporal: tendencias, comparaciones YoY/MoM, estacionalidad y rolling windows.",
+  "agent": "agent_sql",
+  "category": "sql_generation",
+  "content": "Patrones SQL para analisis de series de tiempo en T-SQL:\n\n**Tendencia simple:**\n```sql\nSELECT FORMAT(fecha, 'yyyy-MM') as mes, SUM(monto) as total\nFROM Sales\nWHERE fecha >= DATEADD(year, -1, GETDATE())\nGROUP BY FORMAT(fecha, 'yyyy-MM')\nORDER BY mes\n```\n\n**Comparacion Year-over-Year (YoY):**\n```sql\nSELECT MONTH(fecha) as mes,\n  SUM(CASE WHEN YEAR(fecha) = YEAR(GETDATE()) THEN monto ELSE 0 END) as este_año,\n  SUM(CASE WHEN YEAR(fecha) = YEAR(GETDATE())-1 THEN monto ELSE 0 END) as año_anterior,\n  ROUND(100.0 * (SUM(CASE WHEN YEAR(fecha) = YEAR(GETDATE()) THEN monto ELSE 0 END) - \n   SUM(CASE WHEN YEAR(fecha) = YEAR(GETDATE())-1 THEN monto ELSE 0 END)) /\n   NULLIF(SUM(CASE WHEN YEAR(fecha) = YEAR(GETDATE())-1 THEN monto ELSE 0 END), 0), 2) as pct_cambio\nFROM Sales\nGROUP BY MONTH(fecha)\nORDER BY mes\n```\n\n**Media movil:**\n```sql\nSELECT fecha, monto,\n  AVG(monto) OVER (ORDER BY fecha ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as media_7d\nFROM VentasDiarias\n```\n\n**Acumulado mensual:**\n```sql\nSELECT fecha, monto,\n  SUM(monto) OVER (PARTITION BY FORMAT(fecha,'yyyy-MM') ORDER BY fecha) as acumulado_mes\nFROM Sales\n```\n\n**Funciones de fecha T-SQL:**\n- DATEADD(day/month/year, N, fecha)\n- DATEDIFF(day/month/year, fecha1, fecha2)\n- FORMAT(fecha, 'yyyy-MM-dd')\n- EOMONTH(fecha) — fin de mes\n- DATEFROMPARTS(año, mes, dia)",
+  "source": {
+    "book": "SQL for Data Analysis",
+    "author": "Cathy Tanimura",
+    "chapter": "3 - Time Series Analysis",
+    "pages": "85-165"
+  },
+  "tags": ["series_tiempo", "tendencia", "yoy", "mom", "media_movil", "acumulado", "fechas"],
+  "version": 1,
+  "active": true
+}

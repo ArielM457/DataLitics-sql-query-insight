@@ -1,0 +1,17 @@
+{
+  "id": "insights_003",
+  "title": "Enfocar la atencion del usuario",
+  "description": "Uso de atributos pre-atentivos, color estrategico y jerarquia visual para guiar la atencion hacia el mensaje clave.",
+  "agent": "agent_insights",
+  "category": "visualization",
+  "content": "Tecnicas para dirigir la atencion del usuario al dato mas importante:\n\n**Atributos pre-atentivos (procesados antes de la atencion consciente):**\n- **Color/intensidad**: el elemento de color diferente se detecta inmediatamente\n- **Tamaño**: elementos mas grandes atraen primero\n- **Posicion**: el ojo humano lee de arriba-izquierda a abajo-derecha\n- **Orientacion**: lineas en angulo diferente destacan\n\n**Estrategia de color:**\n- Color de acento (azul, naranja) para el dato clave — MAX 1-2 colores de acento\n- Gris para el contexto/resto de datos\n- NO usar rojo/verde juntos (daltonismo)\n- Ejemplo: si el insight es 'Laptop lidera ventas', pintar Laptop de azul y el resto en gris\n\n**Jerarquia visual en el summary:**\n1. Titulo: el hallazgo principal en 1 linea\n2. Subtitulo: contexto numerico\n3. Findings ordenados de mas a menos impactante\n4. Recommendations con acciones concretas\n\n**Configuracion de colores para Chart.js:**\n```json\n{\n  \"backgroundColor\": [\"#4472C4\", \"#D9D9D9\", \"#D9D9D9\", \"#D9D9D9\"],\n  \"borderColor\": [\"#2F5597\", \"#BFBFBF\", \"#BFBFBF\", \"#BFBFBF\"]\n}\n```\nDonde el primer color es el acento y el resto es contexto.\n\n**Principio:** Si todo tiene enfasis, nada tiene enfasis. Selecciona UN dato para destacar.",
+  "source": {
+    "book": "Storytelling with Data",
+    "author": "Cole Nussbaumer Knaflic",
+    "chapter": "4 - Focus Your Audience's Attention",
+    "pages": "115-142"
+  },
+  "tags": ["atencion", "color", "enfasis", "preatentivo", "jerarquia"],
+  "version": 1,
+  "active": true
+}

@@ -1,0 +1,17 @@
+{
+  "id": "insights_002",
+  "title": "Eliminacion de ruido visual (clutter)",
+  "description": "Principios para eliminar elementos innecesarios en visualizaciones: gridlines, bordes, leyendas y decoraciones.",
+  "agent": "agent_insights",
+  "category": "visualization",
+  "content": "Principios de Cole Nussbaumer para eliminar el clutter (ruido visual):\n\n**Elementos a eliminar o minimizar:**\n1. **Bordes de graficos**: eliminaR marcos alrededor del area del grafico\n2. **Gridlines**: si son necesarias, hacerlas muy claras (gris claro, lineas punteadas)\n3. **Ejes innecesarios**: si los valores estan en las barras, el eje Y es redundante\n4. **Leyendas lejanas**: etiquetar directamente las series en vez de usar leyenda separada\n5. **Colores excesivos**: usar un color principal + gris para contexto\n6. **3D**: NUNCA usar efectos 3D — distorsionan la percepcion\n7. **Decoraciones**: sin sombras, gradientes, ni texturas\n\n**Principio de data-ink ratio (Tufte):**\n- Maximizar la tinta dedicada a los datos\n- Minimizar la tinta dedicada a elementos no-datos\n- Cada elemento visual debe tener un proposito\n\n**Configuracion de Chart.js recomendada:**\n```json\n{\n  \"plugins\": {\n    \"legend\": {\"display\": false},\n    \"title\": {\"display\": true, \"font\": {\"size\": 16}}\n  },\n  \"scales\": {\n    \"x\": {\"grid\": {\"display\": false}},\n    \"y\": {\"grid\": {\"color\": \"rgba(0,0,0,0.05)\"}}\n  }\n}\n```\n\n**Regla del 'so what':** Si eliminas un elemento y el chart sigue comunicando lo mismo, ese elemento era clutter.",
+  "source": {
+    "book": "Storytelling with Data",
+    "author": "Cole Nussbaumer Knaflic",
+    "chapter": "3 - Clutter Is Your Enemy!",
+    "pages": "87-114"
+  },
+  "tags": ["clutter", "limpieza", "minimalismo", "ruido_visual", "chartjs"],
+  "version": 1,
+  "active": true
+}

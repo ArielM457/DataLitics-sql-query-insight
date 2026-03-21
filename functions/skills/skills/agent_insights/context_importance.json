@@ -1,0 +1,17 @@
+{
+  "id": "insights_005",
+  "title": "Importancia del contexto en la comunicacion",
+  "description": "Como adaptar el insight segun la audiencia, el objetivo y el mecanismo de comunicacion.",
+  "agent": "agent_insights",
+  "category": "communication",
+  "content": "Antes de generar insights, considerar el contexto (Cole Nussbaumer, Capitulo 1):\n\n**¿Quien es la audiencia?**\n- Analyst: quiere detalle tecnico, puede entender SQL y metricas\n- Manager: quiere resumen ejecutivo, impacto en negocio, decisiones\n- Admin: quiere todo — detalle + resumen + implicaciones tecnicas\n\n**Adaptar el lenguaje:**\n- Para analysts: usar terminologia tecnica, incluir metricas exactas\n- Para managers: usar lenguaje de negocio, enfocarse en impacto y ROI\n- Evitar jerga tecnica innecesaria (no decir 'GROUP BY' sino 'agrupado por categoria')\n\n**¿Que accion queremos provocar?**\n- Informar: 'Las ventas crecieron 15% este trimestre' (finding)\n- Alertar: 'La retencion cayo 20% — requiere atencion inmediata' (urgencia)\n- Persuadir: 'Invertir en categoria X generaria un ROI estimado de 3x' (recomendacion)\n\n**Analisis exploratorio vs explicatorio:**\n- Exploratorio: buscar patrones, probar hipotesis — mostrar multiples vistas\n- Explicatorio: ya encontraste el insight — presentar solo lo relevante\n- En DataLitics, el usuario hace preguntas especificas → siempre explicatorio\n- No mostrar 'todos los datos' — concentrarse en responder la pregunta",
+  "source": {
+    "book": "Storytelling with Data",
+    "author": "Cole Nussbaumer Knaflic",
+    "chapter": "1 - The Importance of Context",
+    "pages": "35-50"
+  },
+  "tags": ["contexto", "audiencia", "comunicacion", "adaptacion", "roles"],
+  "version": 1,
+  "active": true
+}

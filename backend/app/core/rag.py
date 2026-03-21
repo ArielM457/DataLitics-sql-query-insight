@@ -1,43 +1,98 @@
 """RAG Client — Retrieval-Augmented Generation using Azure AI Search.
 
-Interfaces with Azure AI Search to retrieve relevant content from
-indexed reference books and database schemas, enabling context-aware
-AI responses through vector and hybrid search.
+This module provides schema search capabilities using Azure AI Search.
+Book content retrieval has been replaced by the dynamic Skills system
+(see app/core/skills.py) which provides editable, per-agent knowledge
+loaded from JSON files and ranked by GPT-4.1.
+
+The search_books method is kept for backward compatibility but now
+delegates to the Skills system.
 """
+
+import logging
+
+from app.config import settings
+from app.core.schema_loader import load_tenant_schema
+
+logger = logging.getLogger("dataagent.core.rag")
 
 
 class RAGClient:
-    """Client for Azure AI Search RAG operations.
+    """Client for Azure AI Search schema operations.
 
-    Uses the azure-search-documents SDK with SearchClient and
-    VectorizedQuery to perform semantic and vector searches across
-    book content and tenant database schemas.
+    Book content retrieval is now handled by the Skills system.
+    Schema search still uses Azure AI Search when configured.
     """
 
+    def __init__(self):
+        self._search_configured = bool(
+            settings.AZURE_SEARCH_ENDPOINT and settings.AZURE_SEARCH_KEY
+        )
+        self._search_client_schema = None
+
+        if self._search_configured:
+            try:
+                from azure.core.credentials import AzureKeyCredential
+                from azure.search.documents import SearchClient
+
+                credential = AzureKeyCredential(settings.AZURE_SEARCH_KEY)
+
+                self._search_client_schema = SearchClient(
+                    endpoint=settings.AZURE_SEARCH_ENDPOINT,
+                    index_name=settings.AZURE_SEARCH_INDEX_SCHEMA,
+                    credential=credential,
+                )
+                logger.info("Azure AI Search client initialized for schema search")
+            except Exception as e:
+                logger.warning("Failed to initialize AI Search client: %s", e)
+                self._search_configured = False
+        else:
+            logger.info(
+                "Azure AI Search not configured — using local schema loader. "
+                "Book content is provided by the Skills system (app/core/skills.py)."
+            )
+
     async def search_books(self, query: str, tipo_uso: str, top: int = 5) -> list:
-        """Search indexed reference books for relevant content.
+        """Backward-compatible method — delegates to Skills system.
 
-        Args:
-            query: The search query text.
-            tipo_uso: The type of usage context (e.g., 'insights', 'methodology').
-            top: Maximum number of results to return (default: 5).
-
-        Returns:
-            list: List of search results with content, score, and metadata.
+        This method is kept for any legacy code that still calls it.
+        New code should use skills_manager.select_relevant_skills() instead.
         """
-        # TODO: Issue #09 — Implement Azure AI Search book retrieval
-        raise NotImplementedError("Pending implementation - Issue #09")
+        logger.info(
+            "search_books called (legacy) — use skills_manager instead. "
+            "query='%s', tipo_uso='%s'",
+            query[:50], tipo_uso,
+        )
+        return []
 
     async def search_schema(self, tenant_id: str, query: str) -> dict:
-        """Search the indexed database schema for a specific tenant.
+        """Search the database schema for a specific tenant.
 
-        Args:
-            tenant_id: The tenant identifier for schema isolation.
-            query: The search query to find relevant tables/columns.
-
-        Returns:
-            dict: Matching schema information including tables, columns,
-                  and relationships.
+        When AI Search is configured, performs hybrid search on indexed schemas.
+        Otherwise falls back to reading the local dab-config.json files.
         """
-        # TODO: Issue #09 — Implement Azure AI Search schema retrieval
-        raise NotImplementedError("Pending implementation - Issue #09")
+        if not self._search_configured:
+            return load_tenant_schema(tenant_id)
+
+        try:
+            results = self._search_client_schema.search(
+                search_text=query,
+                filter=f"tenant_id eq '{tenant_id}'",
+                select=["table_name", "columns", "permissions", "tenant_id"],
+                top=10,
+            )
+            search_results = [dict(r) for r in results]
+            if search_results:
+                return {
+                    "tenant_id": tenant_id,
+                    "tables": {r["table_name"]: r for r in search_results},
+                    "available_tables": [r["table_name"] for r in search_results],
+                }
+        except Exception as e:
+            logger.error("AI Search schema query failed, using fallback: %s", e)
+
+        return load_tenant_schema(tenant_id)
+
+
+# Singleton instance
+rag_client = RAGClient()
