@@ -37,6 +37,8 @@ class AuditStore:
         block_reason: str | None = None,
         execution_time_ms: float = 0,
         rows_returned: int = 0,
+        user_email: str = "",
+        uid: str = "",
     ) -> dict:
         """Log a query execution to the audit trail.
 
@@ -51,6 +53,8 @@ class AuditStore:
             block_reason: Reason for block if applicable.
             execution_time_ms: Total pipeline execution time.
             rows_returned: Number of rows returned.
+            user_email: The user's email address.
+            uid: The user's Firebase UID.
 
         Returns:
             dict: The created audit log entry.
@@ -60,6 +64,8 @@ class AuditStore:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "tenant_id": tenant_id,
             "user_role": user_role,
+            "user_email": user_email,
+            "uid": uid,
             "question": question,
             "sql": sql,
             "status": status,
@@ -82,6 +88,7 @@ class AuditStore:
         user_role: str,
         event_type: str,
         details: dict,
+        user_email: str = "",
     ) -> dict:
         """Log a security event (threat detected, block, circuit breaker).
 
@@ -90,6 +97,7 @@ class AuditStore:
             user_role: The user's role.
             event_type: 'prompt_shields', 'context_filter', 'circuit_breaker', 'risk_high'.
             details: Additional event details.
+            user_email: The user's email address.
 
         Returns:
             dict: The created security event entry.
@@ -99,6 +107,7 @@ class AuditStore:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "tenant_id": tenant_id,
             "user_role": user_role,
+            "user_email": user_email,
             "event_type": event_type,
             "details": details,
         }
@@ -114,6 +123,9 @@ class AuditStore:
         tenant_id: str | None = None,
         status: str | None = None,
         risk_level: str | None = None,
+        user_email: str | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
         limit: int = 100,
     ) -> list[dict]:
         """Retrieve audit logs with optional filters.
@@ -122,6 +134,9 @@ class AuditStore:
             tenant_id: Filter by tenant (None = all tenants).
             status: Filter by status ('success', 'blocked', 'error').
             risk_level: Filter by risk level ('low', 'medium', 'high').
+            user_email: Filter by user email (partial match).
+            date_from: Filter from this ISO date (inclusive).
+            date_to: Filter to this ISO date (inclusive).
             limit: Maximum number of entries to return.
 
         Returns:
@@ -134,7 +149,74 @@ class AuditStore:
             filtered = [e for e in filtered if e["status"] == status]
         if risk_level:
             filtered = [e for e in filtered if e["risk_level"] == risk_level]
+        if user_email:
+            user_email_lower = user_email.lower()
+            filtered = [
+                e for e in filtered
+                if user_email_lower in e.get("user_email", "").lower()
+            ]
+        if date_from:
+            filtered = [e for e in filtered if e["timestamp"] >= date_from]
+        if date_to:
+            filtered = [e for e in filtered if e["timestamp"] <= date_to]
         return list(reversed(filtered))[:limit]
+
+    def get_recent_events(
+        self,
+        tenant_id: str | None = None,
+        limit: int = 10,
+    ) -> list[dict]:
+        """Get recent security events and query logs for activity feed.
+
+        Merges security events and blocked/error queries, sorted by time.
+
+        Returns:
+            list: Recent activity entries, most recent first.
+        """
+        activities: list[dict] = []
+
+        # Add security events
+        events = self._security_events
+        if tenant_id:
+            events = [e for e in events if e["tenant_id"] == tenant_id]
+        for ev in events:
+            activities.append({
+                "timestamp": ev["timestamp"],
+                "type": "security",
+                "event_type": ev["event_type"],
+                "user_email": ev.get("user_email", ""),
+                "details": ev.get("details", {}),
+            })
+
+        # Add blocked/error queries
+        logs = self._logs
+        if tenant_id:
+            logs = [e for e in logs if e["tenant_id"] == tenant_id]
+        for log in logs:
+            if log["status"] in ("blocked", "error"):
+                activities.append({
+                    "timestamp": log["timestamp"],
+                    "type": "block",
+                    "event_type": log.get("block_type", "error"),
+                    "user_email": log.get("user_email", ""),
+                    "question": log.get("question", ""),
+                    "details": {
+                        "block_reason": log.get("block_reason", ""),
+                        "risk_level": log.get("risk_level", ""),
+                    },
+                })
+            elif log["status"] == "success":
+                activities.append({
+                    "timestamp": log["timestamp"],
+                    "type": "success",
+                    "event_type": "query_ok",
+                    "user_email": log.get("user_email", ""),
+                    "question": log.get("question", ""),
+                    "details": {"rows_returned": log.get("rows_returned", 0)},
+                })
+
+        activities.sort(key=lambda x: x["timestamp"], reverse=True)
+        return activities[:limit]
 
     def get_security_metrics(self, tenant_id: str | None = None) -> dict:
         """Get aggregated security metrics for the dashboard.
@@ -186,9 +268,9 @@ class AuditStore:
 
         output = io.StringIO()
         fieldnames = [
-            "id", "timestamp", "tenant_id", "user_role", "question",
-            "sql", "status", "risk_level", "block_type", "block_reason",
-            "execution_time_ms", "rows_returned",
+            "id", "timestamp", "tenant_id", "user_role", "user_email",
+            "uid", "question", "sql", "status", "risk_level",
+            "block_type", "block_reason", "execution_time_ms", "rows_returned",
         ]
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()

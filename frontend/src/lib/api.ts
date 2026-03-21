@@ -1,15 +1,12 @@
 /**
  * API Client — Axios instance with Firebase Auth interceptor.
  *
- * Todos los endpoints reales del backend están conectados.
- * Las métricas de seguridad (getAuditLogs, getSecurityMetrics) siguen en mock
- * mientras otros miembros del equipo terminan esa parte del backend.
+ * Todos los endpoints del backend están conectados, incluyendo
+ * auditoría y métricas de seguridad.
  */
 
 import axios from "axios";
 import { auth } from "@/lib/firebase";
-import { mockGetAuditLogs } from "@/lib/mocks/audit.mock";
-import { mockGetSecurityMetrics } from "@/lib/mocks/security.mock";
 
 // Axios instance apuntando al backend
 const api = axios.create({
@@ -42,22 +39,71 @@ export async function queryAgent(question: string) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // getAuditLogs — GET /audit/logs
-// 🔴 MOCK: pendiente de activar cuando el equipo termine el backend de auditoría
 // ─────────────────────────────────────────────────────────────────────────────
-export async function getAuditLogs() {
-  return mockGetAuditLogs();
-  // const response = await api.get("/audit/logs");
-  // return response.data;
+export async function getAuditLogs(filters?: {
+  status?: string;
+  risk_level?: string;
+  user_email?: string;
+  date_from?: string;
+  date_to?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.risk_level) params.set("risk_level", filters.risk_level);
+  if (filters?.user_email) params.set("user_email", filters.user_email);
+  if (filters?.date_from) params.set("date_from", filters.date_from);
+  if (filters?.date_to) params.set("date_to", filters.date_to);
+  if (filters?.limit) params.set("limit", String(filters.limit));
+
+  const response = await api.get("/audit/logs", { params });
+  const { logs } = response.data as { logs: Array<Record<string, unknown>>; total: number };
+
+  // Map backend field names to frontend expected shape
+  return logs.map((log) => ({
+    date: log.timestamp as string,
+    user: (log.user_email as string) || (log.user_role as string) || "",
+    question: log.question as string,
+    status: log.status as string,
+    risk_level: log.risk_level as string,
+    block_type: (log.block_type as string) || null,
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // getSecurityMetrics — GET /audit/security
-// 🔴 MOCK: pendiente de activar cuando el equipo termine el backend de seguridad
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getSecurityMetrics() {
-  return mockGetSecurityMetrics();
-  // const response = await api.get("/audit/security");
-  // return response.data;
+  const response = await api.get("/audit/security");
+  const data = response.data as Record<string, unknown>;
+
+  // Map backend field names to frontend expected shape
+  return {
+    blocked_threats: (data.threats_blocked as number) || 0,
+    out_of_context_queries: (data.out_of_context as number) || 0,
+    restricted_access_attempts: (data.restricted_access as number) || 0,
+    circuit_breaker_activations: (data.circuit_breaker_activations as number) || 0,
+    attack_type_breakdown: (data.attack_type_breakdown as Record<string, number>) || {},
+    total_events: (data.total_events as number) || 0,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getRecentActivity — GET /audit/recent
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getRecentActivity(limit = 10) {
+  const response = await api.get("/audit/recent", { params: { limit } });
+  return response.data as {
+    events: Array<{
+      timestamp: string;
+      type: string;
+      event_type: string;
+      user_email: string;
+      question?: string;
+      details: Record<string, unknown>;
+    }>;
+    total: number;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

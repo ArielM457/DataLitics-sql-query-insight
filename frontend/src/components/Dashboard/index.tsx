@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { getSecurityMetrics } from "@/lib/api";
-import { ShieldAlert, AlertCircle, Lock, TrendingDown } from "lucide-react";
+import { ShieldAlert, AlertCircle, Lock, TrendingDown, Zap } from "lucide-react";
 
 interface SecurityMetrics {
   blocked_threats: number;
   out_of_context_queries: number;
   restricted_access_attempts: number;
+  circuit_breaker_activations: number;
+  attack_type_breakdown: Record<string, number>;
+  total_events: number;
 }
 
 const METRIC_CONFIG = [
@@ -38,6 +41,15 @@ const METRIC_CONFIG = [
     bg: "bg-brand-light/40",
     border: "border-brand-light",
   },
+  {
+    key: "circuit_breaker_activations" as keyof SecurityMetrics,
+    title: "Circuit Breaker",
+    description: "Activaciones por fallos consecutivos",
+    icon: Zap,
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    border: "border-purple-100",
+  },
 ];
 
 export default function Dashboard() {
@@ -60,13 +72,14 @@ export default function Dashboard() {
       {error && (
         <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
           <AlertCircle size={15} className="shrink-0 mt-0.5" />
-          <span>Métricas de seguridad no disponibles — backend no conectado aún.</span>
+          <span>Metricas de seguridad no disponibles — backend no conectado.</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4">
         {METRIC_CONFIG.map((m) => {
           const Icon = m.icon;
+          const value = metrics ? metrics[m.key] : null;
           return (
             <div
               key={m.key}
@@ -76,7 +89,7 @@ export default function Dashboard() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-brand-deepest/80">{m.title}</p>
                   <p className={`text-3xl font-bold mt-1 ${m.color}`}>
-                    {metrics ? metrics[m.key].toLocaleString() : "—"}
+                    {typeof value === "number" ? value.toLocaleString() : "—"}
                   </p>
                   <p className="text-xs text-brand-dark/60 mt-1">{m.description}</p>
                 </div>
