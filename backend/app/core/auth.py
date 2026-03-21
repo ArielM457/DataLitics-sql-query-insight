@@ -39,9 +39,14 @@ def _get_firebase_app():
 
 if _firebase_configured:
     try:
-        cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+            import json as _json
+            cred = credentials.Certificate(_json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON))
+            logger.info("Firebase Admin SDK initialized from FIREBASE_SERVICE_ACCOUNT_JSON env var")
+        else:
+            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+            logger.info("Firebase Admin SDK initialized from credentials file")
         _firebase_app = firebase_admin.initialize_app(cred)
-        logger.info("Firebase Admin SDK initialized")
     except Exception as e:
         logger.warning("Firebase init failed — using dev mode: %s", e)
         _firebase_configured = False
