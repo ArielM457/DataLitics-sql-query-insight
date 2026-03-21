@@ -12,6 +12,7 @@ import json
 import logging
 
 import firebase_admin
+from firebase_admin import auth as firebase_auth
 from firebase_admin import credentials
 from fastapi import HTTPException
 
@@ -22,6 +23,11 @@ logger = logging.getLogger("dataagent.core.auth")
 # Check if Firebase is configured
 _firebase_configured = bool(settings.FIREBASE_PROJECT_ID)
 _firebase_app = None
+
+
+def _get_firebase_app():
+    """Return the initialized Firebase app, or None if not configured."""
+    return _firebase_app
 
 if _firebase_configured:
     try:
@@ -58,7 +64,7 @@ async def verify_firebase_token(token: str) -> dict:
     if not token:
         raise HTTPException(status_code=401, detail="Missing authentication token")
 
-    if _firebase_configured:
+    if _get_firebase_app() is not None or _firebase_configured:
         return await _verify_production(token)
     return _verify_development(token)
 
@@ -66,9 +72,7 @@ async def verify_firebase_token(token: str) -> dict:
 async def _verify_production(token: str) -> dict:
     """Verify token using Firebase Admin SDK."""
     try:
-        from firebase_admin import auth
-
-        decoded_token = auth.verify_id_token(token)
+        decoded_token = firebase_auth.verify_id_token(token)
 
         tenant_id = decoded_token.get("tenant_id")
         if not tenant_id:

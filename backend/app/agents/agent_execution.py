@@ -16,12 +16,33 @@ import time
 
 import httpx
 import pybreaker
+from fastapi import HTTPException
 
 from app.config import settings
 from app.core.circuit_breaker import dab_breaker, handle_circuit_breaker_error
 from app.core.schema_loader import load_tenant_schema
 
 logger = logging.getLogger("dataagent.agents.execution")
+
+_TENANT_DAB_URLS = {
+    "empresa_a": lambda: settings.DAB_BASE_URL_EMPRESA_A,
+    "empresa_b": lambda: settings.DAB_BASE_URL_EMPRESA_B,
+}
+
+
+def get_dab_url(tenant_id: str) -> str:
+    """Return the DAB base URL for the given tenant.
+
+    Raises:
+        HTTPException(403): If the tenant_id is unknown or empty.
+    """
+    if not tenant_id or tenant_id not in _TENANT_DAB_URLS:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Unknown or missing tenant_id: '{tenant_id}'",
+        )
+    return _TENANT_DAB_URLS[tenant_id]()
+
 
 # Maximum rows to return from a single query
 MAX_ROWS = 10_000
