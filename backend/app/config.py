@@ -28,10 +28,13 @@ class Settings(BaseSettings):
 
     # Data API Builder
     DAB_BASE_URL: str = "http://localhost:5000"
+    DAB_BASE_URL_EMPRESA_A: str = "http://dataagent-dab-empresa-a"
+    DAB_BASE_URL_EMPRESA_B: str = "http://dataagent-dab-empresa-b"
 
     # Firebase
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_CREDENTIALS_PATH: str = "./firebase-credentials.json"
+    FIREBASE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string injected via env var
 
     # Application
     FRONTEND_URL: str = "http://localhost:3000"
