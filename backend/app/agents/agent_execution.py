@@ -77,7 +77,7 @@ class ExecutionAgent:
 
         # Determine DAB endpoint based on tenant and schema
         schema = load_tenant_schema(tenant_id)
-        tables = schema.get("available_tables", [])
+        schema.get("available_tables", [])
 
         # Try to identify the primary table from the SQL to route the DAB request
         endpoint = self._resolve_dab_endpoint(sql, schema)

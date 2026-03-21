@@ -8,8 +8,6 @@ tenant's schema configuration from DAB.
 import logging
 import re
 
-import sqlparse
-
 logger = logging.getLogger("dataagent.security.context_filter")
 
 # Regex to extract table names from SQL (handles aliases)
