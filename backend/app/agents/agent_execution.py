@@ -13,13 +13,16 @@ Features:
 
 import logging
 import time
+from pathlib import Path
 
 import httpx
+import pymssql
 import pybreaker
 from fastapi import HTTPException
 
 from app.config import settings
 from app.core.circuit_breaker import dab_breaker, handle_circuit_breaker_error
+from app.core.schema_inspector import _parse_connection_string
 from app.core.schema_loader import load_tenant_schema
 
 logger = logging.getLogger("dataagent.agents.execution")
@@ -133,16 +136,8 @@ class ExecutionAgent:
             }
 
         except pybreaker.CircuitBreakerError:
-            logger.error("Circuit breaker tripped during execution")
-            cb_error = handle_circuit_breaker_error()
-            return {
-                "data": [],
-                "rows": 0,
-                "execution_time_ms": (time.time() - start_time) * 1000,
-                "dab_endpoint": endpoint,
-                "error": cb_error["error"],
-                "circuit_breaker_open": True,
-            }
+            logger.warning("Circuit breaker tripped — falling back to direct DB execution")
+            return await self._execute_direct(sql, tenant_id, start_time, endpoint)
         except httpx.TimeoutException:
             execution_time = (time.time() - start_time) * 1000
             error_msg = (
@@ -160,17 +155,8 @@ class ExecutionAgent:
                 "circuit_breaker_open": False,
             }
         except Exception as e:
-            execution_time = (time.time() - start_time) * 1000
-            error_msg = f"DAB execution error: {str(e)}"
-            logger.error("DAB error: %s (%.2fms)", str(e), execution_time)
-            return {
-                "data": [],
-                "rows": 0,
-                "execution_time_ms": round(execution_time, 2),
-                "dab_endpoint": endpoint,
-                "error": error_msg,
-                "circuit_breaker_open": False,
-            }
+            logger.warning("DAB unavailable (%s) — falling back to direct DB execution", str(e))
+            return await self._execute_direct(sql, tenant_id, start_time, endpoint)
 
     @dab_breaker
     async def _call_dab(
@@ -218,6 +204,60 @@ class ExecutionAgent:
                 raise RuntimeError(
                     f"DAB returned status {response.status_code}: {error_body}"
                 )
+
+    async def _execute_direct(
+        self,
+        sql: str,
+        tenant_id: str,
+        start_time: float,
+        endpoint: str,
+    ) -> dict:
+        """Fallback: execute SQL directly against the tenant DB via pymssql.
+
+        Used when DAB is not running (local development).
+        Reads the connection string from dab/{tenant_id}/connection.txt.
+        """
+        conn_file = Path(__file__).resolve().parent.parent.parent.parent / "dab" / tenant_id / "connection.txt"
+
+        if not conn_file.exists():
+            error_msg = f"DAB unavailable and no direct connection configured for tenant '{tenant_id}'"
+            logger.error(error_msg)
+            return {
+                "data": [], "rows": 0,
+                "execution_time_ms": round((time.time() - start_time) * 1000, 2),
+                "dab_endpoint": endpoint, "error": error_msg, "circuit_breaker_open": False,
+            }
+
+        try:
+            cs_str = conn_file.read_text(encoding="utf-8").strip()
+            p = _parse_connection_string(cs_str)
+            conn = pymssql.connect(
+                server=p["server"], port=str(p["port"]),
+                user=p["user"], password=p["password"],
+                database=p["database"], login_timeout=30,
+            )
+            cursor = conn.cursor(as_dict=True)
+            cursor.execute(sql)
+            rows = cursor.fetchmany(MAX_ROWS)
+            conn.close()
+
+            execution_time = (time.time() - start_time) * 1000
+            logger.info("Direct DB execution: rows=%d, time=%.2fms", len(rows), execution_time)
+            return {
+                "data": rows, "rows": len(rows),
+                "execution_time_ms": round(execution_time, 2),
+                "dab_endpoint": f"direct://{p['server']}/{p['database']}",
+                "error": None, "circuit_breaker_open": False,
+            }
+        except Exception as e:
+            execution_time = (time.time() - start_time) * 1000
+            error_msg = f"Direct DB execution error: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "data": [], "rows": 0,
+                "execution_time_ms": round(execution_time, 2),
+                "dab_endpoint": endpoint, "error": error_msg, "circuit_breaker_open": False,
+            }
 
     def _resolve_dab_endpoint(self, sql: str, schema: dict) -> str:
         """Determine the DAB REST endpoint from the SQL and schema.
