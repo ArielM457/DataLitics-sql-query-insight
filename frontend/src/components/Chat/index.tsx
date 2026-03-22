@@ -102,13 +102,42 @@ function AssistantMessage({ msg }: { msg: Message }) {
             <Lightbulb size={12} className="text-brand-mid" />
             <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">Insights</p>
           </div>
-          <div className="bg-brand-light/40 border border-brand-light rounded-xl p-3 text-sm text-brand-deepest space-y-1">
-            {Object.entries(r.insights).map(([k, v]) => (
-              <p key={k}>
-                <span className="font-medium capitalize">{k.replace(/_/g, " ")}:</span>{" "}
-                {String(v)}
-              </p>
-            ))}
+          <div className="bg-brand-light/40 border border-brand-light rounded-xl p-3 text-sm text-brand-deepest space-y-2">
+            {Object.entries(r.insights).map(([k, v]) => {
+              // Skip chart_config (no chart renderer yet)
+              if (k === "chart_config") return null;
+              const label = k.replace(/_/g, " ");
+              // Arrays → bullet list
+              if (Array.isArray(v)) {
+                return (
+                  <div key={k}>
+                    <p className="font-medium capitalize mb-0.5">{label}:</p>
+                    <ul className="list-disc list-inside space-y-0.5 pl-1">
+                      {(v as unknown[]).map((item, i) => (
+                        <li key={i} className="text-brand-deepest/80">{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              }
+              // source object → "Book · Chapter · p.N"
+              if (k === "source" && typeof v === "object" && v !== null) {
+                const s = v as Record<string, unknown>;
+                const parts = [s.libro, s.capitulo, s.pagina != null ? `p. ${s.pagina}` : null].filter(Boolean);
+                return (
+                  <p key={k} className="text-xs text-brand-mid italic">
+                    Fuente: {parts.join(" · ")}
+                  </p>
+                );
+              }
+              // Primitive → plain text
+              return (
+                <p key={k}>
+                  <span className="font-medium capitalize">{label}:</span>{" "}
+                  {String(v)}
+                </p>
+              );
+            })}
           </div>
         </div>
       )}

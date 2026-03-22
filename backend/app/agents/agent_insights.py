@@ -40,13 +40,13 @@ Your output MUST be a valid JSON object with this exact structure:
 {
     "summary": "2-3 sentence business summary in clear language",
     "findings": [
-        "Finding 1: specific observation about the data",
-        "Finding 2: trend, anomaly, or correlation identified",
-        "Finding 3: non-obvious insight"
+        "Specific observation about the data",
+        "Trend, anomaly, or correlation identified",
+        "Non-obvious insight"
     ],
     "recommendations": [
-        "Actionable recommendation 1 in business-technical language",
-        "Actionable recommendation 2 with specific next steps"
+        "Actionable recommendation in business-technical language",
+        "Actionable recommendation with specific next steps"
     ],
     "chart_type": "bar|line|scatter|table|heatmap|pie",
     "chart_config": {
