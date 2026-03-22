@@ -13,7 +13,7 @@ import time
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
-from app.core.auth import set_user_claims, verify_firebase_token
+from app.core.auth import set_user_claims, verify_firebase_token, verify_firebase_token_light
 from app.core.dab_generator import DabConfigGenerator
 from app.core.schema_inspector import SchemaInspector
 from app.models.request import OnboardingRequest
@@ -41,17 +41,17 @@ async def test_connection(
     """
     token = authorization.replace("Bearer ", "")
     # Only need to be authenticated, not admin (just testing a connection)
-    await verify_firebase_token(token)
+    await verify_firebase_token_light(token)
 
     start = time.time()
     inspector = SchemaInspector(request.connection_string)
-    ok = inspector.test_connection()
+    ok, err = inspector.test_connection()
     latency_ms = round((time.time() - start) * 1000)
 
     if not ok:
         raise HTTPException(
             status_code=400,
-            detail="Cannot connect to the database. Verify the connection string.",
+            detail=f"Cannot connect to the database: {err}",
         )
 
     return {"success": True, "latency_ms": latency_ms}
@@ -98,10 +98,11 @@ async def connect_company(
 
         inspector = SchemaInspector(request.connection_string)
 
-        if not inspector.test_connection():
+        ok, err = inspector.test_connection()
+        if not ok:
             raise HTTPException(
                 status_code=400,
-                detail="Cannot connect to the database. Verify the connection string.",
+                detail=f"Cannot connect to the database: {err}",
             )
 
         schema = inspector.introspect()
