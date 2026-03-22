@@ -76,6 +76,9 @@ Rules:
 - Always cite the source book and chapter for the chart justification
 - Suggest a follow-up question that deepens the analysis
 - Output valid JSON only — no markdown, no extra text
+- LANGUAGE: Detect the language of the user's original question and write ALL text
+  fields (summary, findings, recommendations, chart_justification, chart_config.title,
+  follow_up_question) in that same language
 """
 
 
