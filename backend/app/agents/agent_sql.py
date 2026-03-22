@@ -62,6 +62,9 @@ Your output MUST be a JSON object:
     "sql": "SELECT ...",
     "explanation": "Brief explanation of what this query does in simple language"
 }
+
+LANGUAGE: Always write the "explanation" field in the same language as the user's
+original question. SQL code and comments remain in English.
 """
 
 CORRECTION_PROMPT = """The previous SQL query had an error. Please fix it.

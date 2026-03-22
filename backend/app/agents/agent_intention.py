@@ -56,6 +56,8 @@ Rules:
 - If the question is completely outside the data domain, set fuera_de_dominio to true
 - Suggest the most appropriate SQL technique based on the analysis needed
 - Always output valid JSON — no markdown, no extra text
+- LANGUAGE: Detect the language of the user's question and write all text fields
+  (mensaje_clarificacion, periodo, tecnica_sugerida) in that same language
 """
 
 
