@@ -62,6 +62,8 @@ async def execute_query(
         user_context = await verify_firebase_token(token)
         tenant_id = user_context["tenant_id"]
         user_role = user_context["role"]
+        user_email = user_context.get("email", "")
+        uid = user_context.get("uid", "")
 
         logger.info(
             "Query pipeline started: tenant=%s, role=%s, question='%s'",
@@ -101,6 +103,8 @@ async def execute_query(
                 status="clarification_needed",
                 risk_level="low",
                 execution_time_ms=total_time,
+                user_email=user_email,
+                uid=uid,
             )
             return QueryResponse(
                 sql="",
@@ -127,6 +131,8 @@ async def execute_query(
                 block_type="out_of_domain",
                 block_reason="Question is outside the data domain",
                 execution_time_ms=total_time,
+                user_email=user_email,
+                uid=uid,
             )
             return QueryResponse(
                 sql="",
@@ -159,6 +165,7 @@ async def execute_query(
                 user_role=user_role,
                 event_type=event.get("type", "unknown"),
                 details=event,
+                user_email=user_email,
             )
 
         # Check if SQL was blocked
@@ -174,6 +181,8 @@ async def execute_query(
                 block_type=sql_result.get("block_type", ""),
                 block_reason=sql_result.get("block_reason", ""),
                 execution_time_ms=total_time,
+                user_email=user_email,
+                uid=uid,
             )
             return QueryResponse(
                 sql=sql_result.get("sql", ""),
@@ -209,6 +218,7 @@ async def execute_query(
                 user_role=user_role,
                 event_type="circuit_breaker",
                 details={"error": exec_result.get("error", "")},
+                user_email=user_email,
             )
 
         if exec_result.get("error"):
@@ -221,6 +231,8 @@ async def execute_query(
                 status="error",
                 risk_level=sql_result.get("risk_level", "low"),
                 execution_time_ms=total_time,
+                user_email=user_email,
+                uid=uid,
             )
             return QueryResponse(
                 sql=sql_result["sql"],
@@ -261,6 +273,8 @@ async def execute_query(
             risk_level=sql_result.get("risk_level", "low"),
             execution_time_ms=total_time,
             rows_returned=exec_result.get("rows", 0),
+            user_email=user_email,
+            uid=uid,
         )
 
         logger.info(

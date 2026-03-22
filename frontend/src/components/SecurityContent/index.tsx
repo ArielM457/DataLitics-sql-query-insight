@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSecurityMetrics } from "@/lib/api";
+import { getSecurityMetrics, getRecentActivity } from "@/lib/api";
 import {
   ShieldAlert,
   AlertCircle,
@@ -9,12 +9,25 @@ import {
   TrendingDown,
   RefreshCw,
   Activity,
+  Zap,
 } from "lucide-react";
 
 interface SecurityMetrics {
   blocked_threats: number;
   out_of_context_queries: number;
   restricted_access_attempts: number;
+  circuit_breaker_activations: number;
+  attack_type_breakdown: Record<string, number>;
+  total_events: number;
+}
+
+interface RecentEvent {
+  timestamp: string;
+  type: string;
+  event_type: string;
+  user_email: string;
+  question?: string;
+  details: Record<string, unknown>;
 }
 
 const METRIC_CONFIG = [
@@ -26,7 +39,6 @@ const METRIC_CONFIG = [
     color: "text-red-600",
     bg: "bg-red-50",
     border: "border-red-100",
-    trend: "+12% vs semana anterior",
   },
   {
     key: "out_of_context_queries" as keyof SecurityMetrics,
@@ -36,7 +48,6 @@ const METRIC_CONFIG = [
     color: "text-amber-600",
     bg: "bg-amber-50",
     border: "border-amber-100",
-    trend: "-3% vs semana anterior",
   },
   {
     key: "restricted_access_attempts" as keyof SecurityMetrics,
@@ -46,20 +57,63 @@ const METRIC_CONFIG = [
     color: "text-brand-dark",
     bg: "bg-brand-light/40",
     border: "border-brand-light",
-    trend: "Sin cambios",
+  },
+  {
+    key: "circuit_breaker_activations" as keyof SecurityMetrics,
+    title: "Circuit Breaker",
+    description: "Activaciones del circuit breaker por fallos consecutivos en ejecución",
+    icon: Zap,
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    border: "border-purple-100",
   },
 ];
 
+const EVENT_COLORS: Record<string, string> = {
+  prompt_shields: "bg-red-500",
+  context_filter: "bg-amber-400",
+  circuit_breaker: "bg-purple-500",
+  restricted_column_access: "bg-red-500",
+  out_of_domain: "bg-amber-400",
+  query_ok: "bg-green-500",
+  error: "bg-red-400",
+};
+
+const EVENT_LABELS: Record<string, string> = {
+  prompt_shields: "Prompt injection bloqueado",
+  context_filter: "Consulta fuera de contexto rechazada",
+  circuit_breaker: "Circuit breaker activado",
+  restricted_column_access: "Acceso a columna restringida",
+  out_of_domain: "Consulta fuera de dominio",
+  query_ok: "Consulta procesada correctamente",
+  error: "Error en ejecución",
+};
+
+function formatRelativeTime(isoTimestamp: string): string {
+  const diff = Date.now() - new Date(isoTimestamp).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Ahora";
+  if (mins < 60) return `Hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Hace ${hours}h`;
+  return `Hace ${Math.floor(hours / 24)}d`;
+}
+
 export default function SecurityContent() {
   const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
+  const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     setError(false);
     try {
-      const data = await getSecurityMetrics();
-      setMetrics(data);
+      const [metricsData, activityData] = await Promise.all([
+        getSecurityMetrics(),
+        getRecentActivity(10),
+      ]);
+      setMetrics(metricsData);
+      setRecentEvents(activityData.events);
     } catch {
       setError(true);
     }
@@ -72,6 +126,9 @@ export default function SecurityContent() {
     await load();
     setRefreshing(false);
   };
+
+  const attackBreakdown = metrics?.attack_type_breakdown ?? {};
+  const hasBreakdown = Object.keys(attackBreakdown).length > 0;
 
   return (
     <main className="p-6 max-w-4xl mx-auto space-y-6">
@@ -99,14 +156,15 @@ export default function SecurityContent() {
       {error && (
         <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <AlertCircle size={15} className="shrink-0 mt-0.5" />
-          <span>Métricas no disponibles — backend no conectado aún. Se muestran datos de ejemplo.</span>
+          <span>Metricas no disponibles — verifica la conexion con el backend.</span>
         </div>
       )}
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Metric cards — 4 columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {METRIC_CONFIG.map((m) => {
           const Icon = m.icon;
+          const value = metrics ? metrics[m.key] : null;
           return (
             <div
               key={m.key}
@@ -119,36 +177,80 @@ export default function SecurityContent() {
                 </div>
               </div>
               <p className={`text-4xl font-bold ${m.color} mb-1`}>
-                {metrics ? metrics[m.key].toLocaleString() : "—"}
+                {typeof value === "number" ? value.toLocaleString() : "—"}
               </p>
-              <p className="text-xs text-brand-dark/50 mb-2">{m.description}</p>
-              <p className="text-xs text-brand-mid font-medium">{m.trend}</p>
+              <p className="text-xs text-brand-dark/50">{m.description}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Activity log placeholder */}
+      {/* Attack type breakdown */}
+      {hasBreakdown && (
+        <div className="border border-brand-light rounded-2xl bg-white shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-brand-light bg-brand-light/20">
+            <ShieldAlert size={16} className="text-red-600" />
+            <h2 className="font-semibold text-brand-deepest">Desglose por Tipo de Ataque</h2>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            {Object.entries(attackBreakdown)
+              .sort(([, a], [, b]) => b - a)
+              .map(([type, count]) => {
+                const total = metrics?.blocked_threats || 1;
+                const pct = Math.round((count / total) * 100);
+                return (
+                  <div key={type}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-brand-deepest font-medium capitalize">
+                        {type.replace(/_/g, " ")}
+                      </span>
+                      <span className="text-brand-mid">{count} ({pct}%)</span>
+                    </div>
+                    <div className="w-full h-2 bg-brand-light/50 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-red-500 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Activity log — real data */}
       <div className="border border-brand-light rounded-2xl bg-white shadow-card overflow-hidden">
         <div className="flex items-center gap-2 px-5 py-4 border-b border-brand-light bg-brand-light/20">
           <Activity size={16} className="text-brand-dark" />
           <h2 className="font-semibold text-brand-deepest">Actividad reciente</h2>
-          <span className="ml-auto text-xs text-brand-mid">Últimas 24 horas</span>
+          <span className="ml-auto text-xs text-brand-mid">
+            {metrics ? `${metrics.total_events} eventos totales` : ""}
+          </span>
         </div>
         <div className="divide-y divide-brand-light/50">
-          {[
-            { type: "block", msg: "Prompt injection bloqueado — usuario analyst@empresa.com", time: "Hace 3 min", color: "bg-red-500" },
-            { type: "warn",  msg: "Consulta fuera de contexto detectada y rechazada", time: "Hace 18 min", color: "bg-amber-400" },
-            { type: "block", msg: "Intento de acceso a columna 'Salary' sin permisos", time: "Hace 1h", color: "bg-red-500" },
-            { type: "ok",    msg: "Consulta procesada correctamente — 42 filas devueltas", time: "Hace 1h 12m", color: "bg-green-500" },
-            { type: "warn",  msg: "Jailbreak attempt bloqueado por circuit breaker", time: "Hace 3h", color: "bg-amber-400" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-brand-light/10 transition-colors">
-              <span className={`w-2 h-2 rounded-full shrink-0 ${item.color}`} />
-              <p className="text-sm text-brand-deepest flex-1">{item.msg}</p>
-              <span className="text-xs text-brand-mid shrink-0">{item.time}</span>
+          {recentEvents.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-brand-mid">
+              No hay actividad reciente registrada.
             </div>
-          ))}
+          ) : (
+            recentEvents.map((ev, i) => {
+              const label = EVENT_LABELS[ev.event_type] || ev.event_type;
+              const dotColor = EVENT_COLORS[ev.event_type] || "bg-gray-400";
+              const detail = ev.user_email
+                ? `${label} — ${ev.user_email}`
+                : label;
+              return (
+                <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-brand-light/10 transition-colors">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                  <p className="text-sm text-brand-deepest flex-1 truncate">{detail}</p>
+                  <span className="text-xs text-brand-mid shrink-0">
+                    {formatRelativeTime(ev.timestamp)}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </main>
