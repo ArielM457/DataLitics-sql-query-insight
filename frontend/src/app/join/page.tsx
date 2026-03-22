@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { connectOnboarding, testConnection } from "@/lib/api";
+import { connectOnboarding, testConnection, registerAdmin } from "@/lib/api";
 import { RefreshCw, CheckCircle2, XCircle, Loader2, Database, Building2, ArrowRight, Wifi, AlertCircle } from "lucide-react";
 
 interface DBFields {
@@ -37,7 +37,7 @@ const INPUT_MONO = `${INPUT} font-mono`;
 
 export default function JoinPage() {
   const router = useRouter();
-  const { user, loading, setMockProfile, refreshProfile } = useAuth();
+  const { user, role, loading, setMockProfile, refreshProfile } = useAuth();
   const [step, setStep] = useState<Step>("form");
   const [errorMsg, setErrorMsg] = useState("");
   const [progress, setProgress] = useState(0);
@@ -45,6 +45,7 @@ export default function JoinPage() {
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "fail">("idle");
   const [testLatency, setTestLatency] = useState<number | null>(null);
   const [testError, setTestError] = useState("");
+  const [registering, setRegistering] = useState(false);
 
   const [fields, setFields] = useState<DBFields>({
     companyName: "",
@@ -58,6 +59,20 @@ export default function JoinPage() {
   useEffect(() => {
     if (!loading && !user) router.replace("/auth");
   }, [user, loading, router]);
+
+  // Auto-register as admin if the user has no claims yet (e.g. existing account
+  // or silent failure during registration). Forces a token refresh afterwards so
+  // subsequent API calls include the new role=admin + tenant_id claims.
+  useEffect(() => {
+    if (!loading && user && role !== "admin") {
+      setRegistering(true);
+      registerAdmin()
+        .then(() => user.getIdToken(true))
+        .then(() => refreshProfile())
+        .catch(() => {/* already admin or network error — ignore */})
+        .finally(() => setRegistering(false));
+    }
+  }, [loading, user, role, refreshProfile]);
 
   useEffect(() => {
     if (fields.companyName.trim()) {
@@ -117,8 +132,8 @@ export default function JoinPage() {
     }
   };
 
-  const canTest = fields.server.trim() && fields.database.trim() && fields.username.trim() && fields.password.trim();
-  const canSubmit = fields.companyName.trim() && tenantId && canTest;
+  const canTest = !registering && fields.server.trim() && fields.database.trim() && fields.username.trim() && fields.password.trim();
+  const canSubmit = !registering && fields.companyName.trim() && tenantId && canTest;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-brand-light/20">

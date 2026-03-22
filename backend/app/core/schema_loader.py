@@ -87,6 +87,7 @@ def load_tenant_schema(tenant_id: str) -> dict:
             "source": source,
             "rest_path": rest_path,
             "columns_excluded_by_role": columns_excluded_by_role,
+            "columns": entity_config.get("_columns", []),
         }
 
     return {

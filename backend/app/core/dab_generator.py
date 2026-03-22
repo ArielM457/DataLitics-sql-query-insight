@@ -45,6 +45,10 @@ class DabConfigGenerator:
                     {"role": "manager", "actions": [{"action": "read"}]},
                     {"role": "admin", "actions": [{"action": "read"}]},
                 ],
+                "_columns": [
+                    {"name": col["name"], "type": col["type"], "sensitive": col.get("sensitive", False)}
+                    for col in table_info["columns"]
+                ],
             }
 
         return {
