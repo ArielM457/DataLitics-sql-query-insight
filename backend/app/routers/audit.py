@@ -22,6 +22,9 @@ async def get_audit_logs(
     authorization: str = Header(..., description="Bearer {firebase_token}"),
     status: str | None = Query(None, description="Filter by status"),
     risk_level: str | None = Query(None, description="Filter by risk level"),
+    user_email: str | None = Query(None, description="Filter by user email (partial match)"),
+    date_from: str | None = Query(None, description="Filter from date (ISO format)"),
+    date_to: str | None = Query(None, description="Filter to date (ISO format)"),
     limit: int = Query(100, description="Max entries to return"),
 ):
     """Retrieve filterable query audit logs.
@@ -38,6 +41,9 @@ async def get_audit_logs(
             tenant_id=tenant_id,
             status=status,
             risk_level=risk_level,
+            user_email=user_email,
+            date_from=date_from,
+            date_to=date_to,
             limit=limit,
         )
 
@@ -103,4 +109,33 @@ async def export_audit_csv(
         raise
     except Exception as e:
         logger.error("CSV export failed: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+
+
+@router.get("/recent")
+async def get_recent_activity(
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+    limit: int = Query(10, description="Max entries to return"),
+):
+    """Get recent security events and query activity for the activity feed.
+
+    Returns a merged, time-sorted list of security events and
+    blocked/successful queries.
+    """
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
+
+        events = audit_store.get_recent_events(
+            tenant_id=tenant_id,
+            limit=limit,
+        )
+
+        return {"events": events, "total": len(events)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Recent activity retrieval failed: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
