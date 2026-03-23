@@ -1,29 +1,71 @@
-"""Audit Store — In-memory store for query audit logs and security events.
+"""Audit Store — Persistent store for query audit logs and security events.
 
-Provides centralized storage for all query executions, security blocks,
-and threat detections. Data is stored in-memory for the demo and can
-be exported as CSV. In production, this would be backed by a database
-or Azure Blob Storage.
+Writes to Firestore for persistence across restarts, with an in-memory
+cache for fast reads. Falls back to memory-only if Firestore is unavailable.
 """
 
 import csv
 import io
 import logging
+import threading
 from datetime import datetime, timezone
 
 logger = logging.getLogger("dataagent.core.audit_store")
 
+_AUDIT_COLLECTION = "audit_logs"
+_SECURITY_COLLECTION = "security_events"
+
+
+def _get_firestore():
+    """Return Firestore client if Firebase is initialized, else None."""
+    try:
+        from firebase_admin import firestore
+        return firestore.client()
+    except Exception:
+        return None
+
 
 class AuditStore:
-    """In-memory audit log and security metrics store.
+    """Firestore-backed audit log and security metrics store.
 
-    Stores query history and security events, provides filtered
-    retrieval and CSV export for compliance auditing.
+    Persists all events to Firestore and loads existing history on startup.
+    Falls back to in-memory only if Firestore is not configured.
     """
 
     def __init__(self):
         self._logs: list[dict] = []
         self._security_events: list[dict] = []
+        self._load_from_firestore()
+
+    def _load_from_firestore(self):
+        """Load existing audit logs and security events from Firestore on startup."""
+        try:
+            db = _get_firestore()
+            if not db:
+                return
+            docs = db.collection(_AUDIT_COLLECTION).order_by("timestamp").limit(500).stream()
+            for d in docs:
+                self._logs.append(d.to_dict())
+            docs = db.collection(_SECURITY_COLLECTION).order_by("timestamp").limit(500).stream()
+            for d in docs:
+                self._security_events.append(d.to_dict())
+            logger.info(
+                "Audit store loaded from Firestore: %d logs, %d security events",
+                len(self._logs), len(self._security_events),
+            )
+        except Exception as e:
+            logger.warning("Could not load audit store from Firestore: %s", e)
+
+    def _write_async(self, collection_name: str, entry: dict):
+        """Write a document to Firestore in a background thread (non-blocking)."""
+        def _write():
+            try:
+                db = _get_firestore()
+                if db:
+                    db.collection(collection_name).add(entry)
+            except Exception as ex:
+                logger.warning("Firestore write failed (%s): %s", collection_name, ex)
+        threading.Thread(target=_write, daemon=True).start()
 
     def log_query(
         self,
@@ -76,6 +118,7 @@ class AuditStore:
             "rows_returned": rows_returned,
         }
         self._logs.append(entry)
+        self._write_async(_AUDIT_COLLECTION, entry)
         logger.info(
             "Audit log: id=%d, status=%s, risk=%s, tenant=%s",
             entry["id"], status, risk_level, tenant_id,
@@ -112,6 +155,7 @@ class AuditStore:
             "details": details,
         }
         self._security_events.append(event)
+        self._write_async(_SECURITY_COLLECTION, event)
         logger.info(
             "Security event: type=%s, tenant=%s, role=%s",
             event_type, tenant_id, user_role,
@@ -231,22 +275,46 @@ class AuditStore:
         if tenant_id:
             events = [e for e in events if e["tenant_id"] == tenant_id]
 
-        # Count by event type
+        # Count by event type from security events
         type_counts: dict[str, int] = {}
         attack_types: dict[str, int] = {}
         for event in events:
             et = event["event_type"]
             type_counts[et] = type_counts.get(et, 0) + 1
-            # Extract attack subtype if available
             attack_type = event.get("details", {}).get("attack_type")
             if attack_type:
                 attack_types[attack_type] = attack_types.get(attack_type, 0) + 1
 
+        # Also count blocked queries by block_type (out_of_domain, content_filter, etc.)
+        logs = self._logs
+        if tenant_id:
+            logs = [e for e in logs if e["tenant_id"] == tenant_id]
+
+        blocked_by_type: dict[str, int] = {}
+        for log in logs:
+            if log["status"] == "blocked" and log.get("block_type"):
+                bt = log["block_type"]
+                blocked_by_type[bt] = blocked_by_type.get(bt, 0) + 1
+
+        total_blocked = sum(1 for l in logs if l["status"] == "blocked")
+
         return {
-            "total_events": len(events),
-            "threats_blocked": type_counts.get("prompt_shields", 0),
-            "out_of_context": type_counts.get("context_filter", 0),
-            "restricted_access": type_counts.get("restricted_column_access", 0),
+            "total_events": len(events) + total_blocked,
+            "threats_blocked": (
+                type_counts.get("prompt_shields", 0)
+                + type_counts.get("content_filter_jailbreak", 0)
+                + type_counts.get("content_filter", 0)
+                + blocked_by_type.get("content_filter_jailbreak", 0)
+                + blocked_by_type.get("content_filter", 0)
+            ),
+            "out_of_context": (
+                type_counts.get("context_filter", 0)
+                + blocked_by_type.get("out_of_domain", 0)
+            ),
+            "restricted_access": (
+                type_counts.get("restricted_column_access", 0)
+                + blocked_by_type.get("restricted_column", 0)
+            ),
             "circuit_breaker_activations": type_counts.get("circuit_breaker", 0),
             "attack_type_breakdown": attack_types,
             "events_by_type": type_counts,

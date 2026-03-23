@@ -37,7 +37,10 @@
           "role": "analyst",
           "actions": [
             {
-              "action": "read"
+              "action": "read",
+              "fields": {
+                "exclude": ["salario"]
+              }
             }
           ]
         },

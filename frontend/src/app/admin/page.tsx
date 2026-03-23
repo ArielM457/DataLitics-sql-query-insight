@@ -11,6 +11,7 @@ import {
   rejectUserAPI,
 } from "@/lib/api";
 import { Key, Users, Copy, Check, UserCheck, UserX, Clock, Loader2 } from "lucide-react";
+import AdminLayout from "@/components/AdminLayout";
 
 interface InviteCode {
   code: string;
@@ -134,7 +135,8 @@ export default function AdminPage() {
   const activePending = pending.filter((u) => u.status === "pending");
 
   return (
-    <main className="p-6 max-w-4xl mx-auto space-y-6">
+    <AdminLayout>
+    <div className="p-8 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-brand-deepest">Panel de administración</h1>
         <p className="text-brand-dark/60 text-sm mt-1">
@@ -322,7 +324,8 @@ export default function AdminPage() {
           )}
         </div>
       )}
-    </main>
+    </div>
+    </AdminLayout>
   );
 }
 
