@@ -1,0 +1,159 @@
+{
+  "$schema": "https://dataapibuilder.azureedge.net/schemas/v1.1.5/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('TENANT_YOLAASD_F0Q9_CONNECTION')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "mode": "production",
+      "cors": {
+        "origins": [
+          "http://localhost:3000",
+          "https://*.azurecontainerapps.io"
+        ],
+        "allow-credentials": true
+      },
+      "authentication": {
+        "provider": "StaticWebApps"
+      }
+    }
+  },
+  "entities": {
+    "empleados": {
+      "source": "dbo.empleados",
+      "rest": {
+        "path": "/empleados"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "sensitive": false
+        },
+        {
+          "name": "nombre",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "departamento",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "salario",
+          "type": "decimal",
+          "sensitive": false
+        },
+        {
+          "name": "fecha_ingreso",
+          "type": "date",
+          "sensitive": false
+        }
+      ]
+    },
+    "productos": {
+      "source": "dbo.productos",
+      "rest": {
+        "path": "/productos"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "sensitive": false
+        },
+        {
+          "name": "nombre",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "categoria",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "precio",
+          "type": "decimal",
+          "sensitive": false
+        },
+        {
+          "name": "stock",
+          "type": "int",
+          "sensitive": false
+        },
+        {
+          "name": "proveedor",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "fecha_alta",
+          "type": "date",
+          "sensitive": false
+        }
+      ]
+    }
+  }
+}

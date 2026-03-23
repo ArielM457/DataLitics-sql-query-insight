@@ -40,21 +40,21 @@ Your output MUST be a valid JSON object with this exact structure:
 {
     "summary": "2-3 sentence business summary in clear language",
     "findings": [
-        "Finding 1: specific observation about the data",
-        "Finding 2: trend, anomaly, or correlation identified",
-        "Finding 3: non-obvious insight"
+        "Specific observation about the data",
+        "Trend, anomaly, or correlation identified",
+        "Non-obvious insight"
     ],
     "recommendations": [
-        "Actionable recommendation 1 in business-technical language",
-        "Actionable recommendation 2 with specific next steps"
+        "Actionable recommendation in business-technical language",
+        "Actionable recommendation with specific next steps"
     ],
     "chart_type": "bar|line|scatter|table|heatmap|pie",
     "chart_config": {
-        "labels": ["label1", "label2"],
+        "labels": ["<actual row value from the categorical/dimension column, one per row>"],
         "datasets": [
             {
-                "label": "Dataset name",
-                "data": [value1, value2]
+                "label": "<metric column name>",
+                "data": [<actual numeric value from the metric column, one per row>]
             }
         ],
         "title": "Chart title"
@@ -76,6 +76,18 @@ Rules:
 - Always cite the source book and chapter for the chart justification
 - Suggest a follow-up question that deepens the analysis
 - Output valid JSON only — no markdown, no extra text
+- LANGUAGE: Detect the language of the user's original question and write ALL text
+  fields (summary, findings, recommendations, chart_justification, chart_config.title,
+  follow_up_question) in that same language
+
+CRITICAL — chart_config must use REAL DATA VALUES:
+- "labels" must contain the actual VALUES from the categorical/dimension column
+  (e.g. product names, category names, dates) — NOT column header names
+- "data" inside datasets must contain the actual NUMERIC VALUES from the metric column
+  — NOT zeros or placeholders
+- Example: if data is [{"nombre":"Mouse","stock":1},{"nombre":"Teclado","stock":0}]
+  then labels=["Mouse","Teclado"] and data=[1,0]
+- If chart_type is "table", set labels=[] and datasets=[]
 """
 
 

@@ -6,14 +6,16 @@ Endpoints:
     GET  /onboarding/schema/{id}     — Retrieve the current schema for a tenant
 """
 
+import json
 import logging
 import os
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
-from app.core.auth import set_user_claims, verify_firebase_token
+from app.core.auth import set_user_claims, verify_firebase_token, verify_firebase_token_light
 from app.core.dab_generator import DabConfigGenerator
 from app.core.schema_inspector import SchemaInspector
 from app.models.request import OnboardingRequest
@@ -41,17 +43,17 @@ async def test_connection(
     """
     token = authorization.replace("Bearer ", "")
     # Only need to be authenticated, not admin (just testing a connection)
-    await verify_firebase_token(token)
+    await verify_firebase_token_light(token)
 
     start = time.time()
     inspector = SchemaInspector(request.connection_string)
-    ok = inspector.test_connection()
+    ok, err = inspector.test_connection()
     latency_ms = round((time.time() - start) * 1000)
 
     if not ok:
         raise HTTPException(
             status_code=400,
-            detail="Cannot connect to the database. Verify the connection string.",
+            detail=f"Cannot connect to the database: {err}",
         )
 
     return {"success": True, "latency_ms": latency_ms}
@@ -98,19 +100,17 @@ async def connect_company(
 
         inspector = SchemaInspector(request.connection_string)
 
-        if not inspector.test_connection():
+        ok, err = inspector.test_connection()
+        if not ok:
             raise HTTPException(
                 status_code=400,
-                detail="Cannot connect to the database. Verify the connection string.",
+                detail=f"Cannot connect to the database: {err}",
             )
 
         schema = inspector.introspect()
 
         if not schema:
-            raise HTTPException(
-                status_code=400,
-                detail="No tables found in the database.",
-            )
+            logger.warning("No user tables found for tenant=%s — proceeding with empty schema", request.tenant_id)
 
         env_var_name = f"TENANT_{request.tenant_id.upper()}_CONNECTION"
         dab_config = DabConfigGenerator().generate(
@@ -118,6 +118,18 @@ async def connect_company(
             schema=schema,
             connection_env_var=env_var_name,
         )
+
+        # Save dab-config.json to disk so schema_loader and agents can read it
+        dab_dir = Path(__file__).resolve().parent.parent.parent.parent / "dab" / request.tenant_id
+        dab_dir.mkdir(parents=True, exist_ok=True)
+        dab_config_path = dab_dir / "dab-config.json"
+        with open(dab_config_path, "w", encoding="utf-8") as f:
+            json.dump(dab_config, f, indent=2)
+        logger.info("Saved dab-config.json for tenant=%s at %s", request.tenant_id, dab_config_path)
+
+        # Save connection string to .env-style file so agents can connect directly
+        conn_file = dab_dir / "connection.txt"
+        conn_file.write_text(request.connection_string, encoding="utf-8")
 
         schema_summary = {
             table: {

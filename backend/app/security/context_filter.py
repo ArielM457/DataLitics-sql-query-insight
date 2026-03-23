@@ -10,12 +10,12 @@ import re
 
 logger = logging.getLogger("dataagent.security.context_filter")
 
-# Regex to extract table names from SQL (handles aliases)
+# Regex to extract table names from SQL (handles schema prefix like dbo.TableName)
 _TABLE_PATTERN = re.compile(
-    r"\bFROM\s+(\w+)"
-    r"|\bJOIN\s+(\w+)"
-    r"|\bINTO\s+(\w+)"
-    r"|\bUPDATE\s+(\w+)",
+    r"\bFROM\s+(?:\w+\.)?(\w+)"
+    r"|\bJOIN\s+(?:\w+\.)?(\w+)"
+    r"|\bINTO\s+(?:\w+\.)?(\w+)"
+    r"|\bUPDATE\s+(?:\w+\.)?(\w+)",
     re.IGNORECASE,
 )
 

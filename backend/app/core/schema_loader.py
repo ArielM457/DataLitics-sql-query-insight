@@ -87,6 +87,7 @@ def load_tenant_schema(tenant_id: str) -> dict:
             "source": source,
             "rest_path": rest_path,
             "columns_excluded_by_role": columns_excluded_by_role,
+            "columns": entity_config.get("_columns", []),
         }
 
     return {
@@ -125,7 +126,16 @@ def get_schema_description(tenant_id: str, user_role: str) -> str:
 
     for table_name, table_info in schema["tables"].items():
         excluded = table_info["columns_excluded_by_role"].get(user_role, [])
+        columns = table_info.get("columns", [])
         lines.append(f"Table: {table_name} (source: {table_info['source']})")
+        if columns:
+            available = [
+                f"{c['name']} ({c['type']})"
+                for c in columns
+                if c["name"] not in excluded
+            ]
+            if available:
+                lines.append(f"  Columns: {', '.join(available)}")
         if excluded:
             lines.append(f"  Restricted columns (not accessible): {', '.join(excluded)}")
         lines.append(f"  REST endpoint: {table_info['rest_path']}")

@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_JSON: str = ""  # JSON string injected via env var
 
     # Application
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "http://localhost:3001"
     ENVIRONMENT: str = "development"
 
     model_config = {

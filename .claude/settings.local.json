@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \":*)",
+      "Bash(pip install:*)",
+      "Bash(curl -s -X POST http://localhost:8000/onboarding/test -H \"Content-Type: application/json\" -H \"Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjczMmNhOTY3MTNiMWRkMTcyMzg1MDg0Y2U5ZjQzODFhZDAwY2VjZTQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vYmF0dGxldGFua3MtYXV0aCIsImF1ZCI6ImJhdHRsZXRhbmtzLWF1dGgiLCJhdXRoX3RpbWUiOjE3NzQxNDkwMjgsInVzZXJfaWQiOiIySEFIMTRJcTQyZ2dLcHBBVnFDbXhsZzBvazgzIiwic3ViIjoiMkhBSDE0SXE0MmdnS3BwQVZxQ214bGcwb2s4MyIsImlhdCI6MTc3NDE0OTAyOCwiZXhwIjoxNzc0MTUyNjI4LCJlbWFpbCI6Impvc2V0QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJqb3NldEBnbWFpbC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.Urk8OP63d7LTBr3Y5htYxk0F9ycnx7JP6JMPRA0oDYFzaa-rtq5jozY8fNcAfcGK4i09cmPXxavojdHv-3-o6ztwmXTCdDdusYMu0vz7YDwRk6dGvk01AEMpyEFmWI6yY2U6SwXWlmQAgZ6FDREFTeBbqccsuLXOOylRDtX6a5p4VI5ypKr01EViZVsiria2iAa1SRwvm0UE3p7yQcWnpgPo9yQEo3PQpshWQeXdeYRfjLB3lULce12q0hFm5C8nwzssuH-eWrIgqOnM6ouh8VuZSapd-VQq_0s6Z-mNxS7onlXv5xVWVy0VP1tGss1xy_nwxeV4w4EesnzxCi5QhA\" -d '{\"\"connection_string\"\": \"\"Driver={ODBC Driver 18 for SQL Server};Server=tcp:dataliticsdb.database.windows.net,1433;Database=empresa_a;User ID=dataagent_user;Password=DataAgent#2024!Secure;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;\"\"}')",
+      "Bash(python -c \"import pyodbc; print\\(pyodbc.drivers\\(\\)\\)\")"
+    ]
+  }
+}
