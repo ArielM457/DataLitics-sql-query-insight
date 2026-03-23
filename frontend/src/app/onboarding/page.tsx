@@ -6,13 +6,7 @@ export default function OnboardingPage() {
   return (
     <AuthGuard requiredRole="admin">
       <AdminLayout>
-        <div className="p-8 max-w-4xl mx-auto">
-          <header className="mb-6">
-            <h1 className="text-2xl font-bold text-[#003f54]">Base de datos</h1>
-            <p className="text-[#41484c] text-sm mt-1">
-              Actualiza la cadena de conexión de la base de datos de tu empresa.
-            </p>
-          </header>
+        <div className="px-8 py-6 max-w-5xl mx-auto">
           <Onboarding />
         </div>
       </AdminLayout>
