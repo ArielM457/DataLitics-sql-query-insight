@@ -50,11 +50,11 @@ Your output MUST be a valid JSON object with this exact structure:
     ],
     "chart_type": "bar|line|scatter|table|heatmap|pie",
     "chart_config": {
-        "labels": ["label1", "label2"],
+        "labels": ["<actual row value from the categorical/dimension column, one per row>"],
         "datasets": [
             {
-                "label": "Dataset name",
-                "data": [value1, value2]
+                "label": "<metric column name>",
+                "data": [<actual numeric value from the metric column, one per row>]
             }
         ],
         "title": "Chart title"
@@ -79,6 +79,15 @@ Rules:
 - LANGUAGE: Detect the language of the user's original question and write ALL text
   fields (summary, findings, recommendations, chart_justification, chart_config.title,
   follow_up_question) in that same language
+
+CRITICAL — chart_config must use REAL DATA VALUES:
+- "labels" must contain the actual VALUES from the categorical/dimension column
+  (e.g. product names, category names, dates) — NOT column header names
+- "data" inside datasets must contain the actual NUMERIC VALUES from the metric column
+  — NOT zeros or placeholders
+- Example: if data is [{"nombre":"Mouse","stock":1},{"nombre":"Teclado","stock":0}]
+  then labels=["Mouse","Teclado"] and data=[1,0]
+- If chart_type is "table", set labels=[] and datasets=[]
 """
 
 
