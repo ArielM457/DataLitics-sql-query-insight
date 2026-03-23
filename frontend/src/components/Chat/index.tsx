@@ -2,16 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { queryAgent } from "@/lib/api";
-import { Send, Bot, User, Code2, Table2, Lightbulb } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  createChatSession,
+  addMessageToSession,
+  logQueryRequest,
+  type AgentResponse,
+} from "@/lib/chatHistory";
+import { Send, Bot, User, Code2, Table2, Lightbulb, ChevronDown, ChevronUp, BarChart2 } from "lucide-react";
+import ChartDisplay from "@/components/ChartDisplay";
 
-interface AgentResponse {
-  sql?: string;
-  explanation?: string;
-  data?: Record<string, unknown>[];
-  insights?: Record<string, unknown>;
-}
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
-interface Message {
+export interface Message {
   role: "user" | "assistant";
   content: string;
   response?: AgentResponse;
@@ -21,7 +24,15 @@ interface ChatProps {
   /** Mensaje externo a enviar automáticamente (ej: desde sugerencias). Se consume una vez. */
   pendingMessage?: string | null;
   onPendingConsumed?: () => void;
+  /** ID de la sesión activa. Si es null = nueva conversación. */
+  sessionId?: string | null;
+  /** Callback cuando se crea una nueva sesión (primer mensaje). */
+  onSessionCreated?: (sessionId: string) => void;
+  /** Mensajes iniciales para cargar una sesión anterior. */
+  initialMessages?: Message[];
 }
+
+// ─── DataTable ────────────────────────────────────────────────────────────────
 
 function DataTable({ data }: { data: Record<string, unknown>[] }) {
   if (!data || data.length === 0) return null;
@@ -59,8 +70,20 @@ function DataTable({ data }: { data: Record<string, unknown>[] }) {
   );
 }
 
+// Keys que se manejan con componentes dedicados, no como texto plano
+const SKIP_INSIGHT_KEYS = new Set(["chart_type", "chart_config", "chart_justification"]);
+
+// ─── AssistantMessage ─────────────────────────────────────────────────────────
+
 function AssistantMessage({ msg }: { msg: Message }) {
   const r = msg.response;
+  const [sqlOpen, setSqlOpen] = useState(false);
+
+  const insights = r?.insights as Record<string, unknown> | undefined;
+  const chartType = insights?.chart_type as string | undefined;
+  const chartConfig = insights?.chart_config as Record<string, unknown> | undefined;
+  const chartJustification = insights?.chart_justification as string | undefined;
+
   return (
     <div className="bg-white border border-brand-light text-brand-deepest mr-8 p-4 rounded-2xl rounded-tl-sm space-y-3 shadow-card animate-fade-in">
       <div className="flex items-center gap-2">
@@ -72,18 +95,26 @@ function AssistantMessage({ msg }: { msg: Message }) {
 
       {msg.content && <p className="text-sm text-brand-deepest leading-relaxed">{msg.content}</p>}
 
+      {/* SQL — colapsable, transparencia para el hackathon */}
       {r?.sql && (
         <div>
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Code2 size={12} className="text-brand-mid" />
-            <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">SQL Generado</p>
-          </div>
-          <pre className="bg-brand-deepest text-green-400 text-xs rounded-xl p-3 overflow-x-auto whitespace-pre-wrap leading-relaxed">
-            {r.sql}
-          </pre>
+          <button
+            onClick={() => setSqlOpen((o) => !o)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-brand-mid uppercase tracking-wide hover:text-brand-dark transition-colors"
+          >
+            <Code2 size={12} />
+            <span>Consulta técnica</span>
+            {sqlOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+          {sqlOpen && (
+            <pre className="mt-1.5 bg-brand-deepest text-green-400 text-xs rounded-xl p-3 overflow-x-auto whitespace-pre-wrap leading-relaxed">
+              {r.sql}
+            </pre>
+          )}
         </div>
       )}
 
+      {/* Tabla de datos */}
       {r?.data && r.data.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
@@ -96,18 +127,32 @@ function AssistantMessage({ msg }: { msg: Message }) {
         </div>
       )}
 
-      {r?.insights && Object.keys(r.insights).length > 0 && (
+      {/* Gráfica — solo cuando hay tipo renderable y datos reales */}
+      {chartType && chartType !== "table" && (chartConfig?.labels as unknown[])?.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <BarChart2 size={12} className="text-brand-mid" />
+            <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">Visualización</p>
+          </div>
+          <ChartDisplay
+            chartType={chartType}
+            chartConfig={chartConfig as Parameters<typeof ChartDisplay>[0]["chartConfig"]}
+            justification={chartJustification}
+          />
+        </div>
+      )}
+
+      {/* Insights de texto */}
+      {insights && Object.keys(insights).length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
             <Lightbulb size={12} className="text-brand-mid" />
             <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">Insights</p>
           </div>
           <div className="bg-brand-light/40 border border-brand-light rounded-xl p-3 text-sm text-brand-deepest space-y-2">
-            {Object.entries(r.insights).map(([k, v]) => {
-              // Skip chart_config (no chart renderer yet)
-              if (k === "chart_config") return null;
+            {Object.entries(insights).map(([k, v]) => {
+              if (SKIP_INSIGHT_KEYS.has(k)) return null;
               const label = k.replace(/_/g, " ");
-              // Arrays → bullet list
               if (Array.isArray(v)) {
                 return (
                   <div key={k}>
@@ -120,7 +165,6 @@ function AssistantMessage({ msg }: { msg: Message }) {
                   </div>
                 );
               }
-              // source object → "Book · Chapter · p.N"
               if (k === "source" && typeof v === "object" && v !== null) {
                 const s = v as Record<string, unknown>;
                 const parts = [s.libro, s.capitulo, s.pagina != null ? `p. ${s.pagina}` : null].filter(Boolean);
@@ -130,7 +174,6 @@ function AssistantMessage({ msg }: { msg: Message }) {
                   </p>
                 );
               }
-              // Primitive → plain text
               return (
                 <p key={k}>
                   <span className="font-medium capitalize">{label}:</span>{" "}
@@ -145,10 +188,20 @@ function AssistantMessage({ msg }: { msg: Message }) {
   );
 }
 
-export default function Chat({ pendingMessage, onPendingConsumed }: ChatProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+export default function Chat({
+  pendingMessage,
+  onPendingConsumed,
+  sessionId: initialSessionId = null,
+  onSessionCreated,
+  initialMessages = [],
+}: ChatProps) {
+  const { user, tenantId } = useAuth();
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const sessionIdRef = useRef<string | null>(initialSessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll al último mensaje
@@ -173,6 +226,20 @@ export default function Chat({ pendingMessage, onPendingConsumed }: ChatProps) {
     setInput("");
     setLoading(true);
 
+    // Crear sesión en el primer mensaje
+    if (!sessionIdRef.current && user) {
+      const newId = await createChatSession(user.uid, tenantId ?? "", text);
+      if (newId) {
+        sessionIdRef.current = newId;
+        onSessionCreated?.(newId);
+      }
+    }
+
+    // Guardar mensaje del usuario
+    if (sessionIdRef.current) {
+      await addMessageToSession(sessionIdRef.current, { role: "user", content: text });
+    }
+
     try {
       const response: AgentResponse = await queryAgent(text);
       const assistantMessage: Message = {
@@ -181,11 +248,41 @@ export default function Chat({ pendingMessage, onPendingConsumed }: ChatProps) {
         response,
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Error al procesar tu pregunta. Por favor intenta de nuevo." },
-      ]);
+
+      // Guardar respuesta del asistente
+      if (sessionIdRef.current) {
+        await addMessageToSession(sessionIdRef.current, {
+          role: "assistant",
+          content: assistantMessage.content,
+          response,
+        });
+      }
+
+      // Log de la petición
+      if (user) {
+        await logQueryRequest({
+          uid: user.uid,
+          tenant_id: tenantId ?? "",
+          session_id: sessionIdRef.current ?? "",
+          question: text,
+          sql: response?.sql,
+          success: true,
+        });
+      }
+    } catch (err) {
+      const errorMsg = "Error al procesar tu pregunta. Por favor intenta de nuevo.";
+      setMessages((prev) => [...prev, { role: "assistant", content: errorMsg }]);
+
+      if (user) {
+        await logQueryRequest({
+          uid: user.uid,
+          tenant_id: tenantId ?? "",
+          session_id: sessionIdRef.current ?? "",
+          question: text,
+          success: false,
+          error: String(err),
+        });
+      }
     } finally {
       setLoading(false);
     }

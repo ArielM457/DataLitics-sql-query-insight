@@ -14,6 +14,7 @@ node_modules/
 .next/
 out/
 dist/
+local.settings.json
 
 # Env y secretos — NUNCA en el repo
 .env
