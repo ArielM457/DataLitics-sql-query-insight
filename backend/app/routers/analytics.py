@@ -200,6 +200,19 @@ async def skills_chat(
             question=body.question,
             limit=body.limit,
         )
+
+        # Save the chatbot interaction to audit logs
+        audit_store.log_query(
+            tenant_id=tenant_id,
+            user_role=user_context.get("role", "admin"),
+            question=body.question,
+            sql="",
+            status="skills_chat",
+            risk_level="low",
+            user_email=user_context.get("email", ""),
+            uid=user_context.get("uid", ""),
+        )
+
         return {"answer": answer, "tenant_id": tenant_id}
 
     except HTTPException:

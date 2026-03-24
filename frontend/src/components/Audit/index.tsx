@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getAuditLogs } from "@/lib/api";
-import { ClipboardList, Download, AlertCircle, Loader2, Search, X } from "lucide-react";
+import { ClipboardList, Download, AlertCircle, Loader2, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface AuditLog {
   date?: string;
@@ -36,7 +36,10 @@ const STATUS_COLORS: Record<string, string> = {
   warning: "bg-amber-100 text-amber-700",
   clarification_needed: "bg-amber-100 text-amber-700",
   analytics_chat: "bg-indigo-100 text-indigo-700",
+  skills_chat: "bg-violet-100 text-violet-700",
 };
+
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 export default function Audit() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -44,13 +47,17 @@ export default function Audit() {
   const [error, setError] = useState(false);
   const [filters, setFilters] = useState<Filters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const fetchLogs = useCallback(async (currentFilters: Filters) => {
     setLoading(true);
     setError(false);
     try {
-      const data = await getAuditLogs(currentFilters);
+      // Fetch up to 500 for the table; bots call the backend directly with their own limit
+      const data = await getAuditLogs({ ...currentFilters, limit: 500 });
       setLogs(Array.isArray(data) ? (data as AuditLog[]) : []);
+      setPage(1);
     } catch {
       setError(true);
     } finally {
@@ -79,6 +86,9 @@ export default function Audit() {
   };
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / pageSize));
+  const pageLogs = logs.slice((page - 1) * pageSize, page * pageSize);
 
   const handleExportCSV = () => {
     const headers = ["Date", "User", "Question", "Status", "Risk", "Block Type"];
@@ -111,6 +121,16 @@ export default function Audit() {
           <h2 className="text-lg font-semibold text-brand-deepest">Audit Logs</h2>
         </div>
         <div className="flex items-center gap-2">
+          {/* Page size selector */}
+          <select
+            value={pageSize}
+            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            className="border border-brand-light rounded-lg px-2 py-1.5 text-xs text-brand-dark bg-white"
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n} por página</option>
+            ))}
+          </select>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-1.5 border px-3 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -155,6 +175,7 @@ export default function Audit() {
                 <option value="error">Error</option>
                 <option value="clarification_needed">Clarificación</option>
                 <option value="analytics_chat">Chat analítico</option>
+                <option value="skills_chat">Chat de skills</option>
               </select>
             </div>
             <div>
@@ -256,7 +277,7 @@ export default function Audit() {
                 </td>
               </tr>
             ) : (
-              logs.map((log, i) => (
+              pageLogs.map((log, i) => (
                 <tr key={i} className="border-t border-brand-light/50 hover:bg-brand-light/20 transition-colors">
                   <td className="px-4 py-3 text-sm text-brand-deepest whitespace-nowrap">{log.date ?? "—"}</td>
                   <td className="px-4 py-3 text-sm font-medium text-brand-deepest">{log.user ?? "—"}</td>
@@ -282,6 +303,32 @@ export default function Audit() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination footer */}
+      {!loading && logs.length > pageSize && (
+        <div className="flex items-center justify-between px-5 py-3 border-t border-brand-light bg-brand-light/10">
+          <span className="text-xs text-brand-dark/60">
+            Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, logs.length)} de {logs.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-brand-light text-brand-dark hover:bg-brand-light/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs text-brand-dark px-2">{page} / {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-brand-light text-brand-dark hover:bg-brand-light/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
