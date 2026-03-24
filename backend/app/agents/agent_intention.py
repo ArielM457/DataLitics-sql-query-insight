@@ -50,7 +50,14 @@ Your output MUST be a valid JSON object with this exact structure:
 }
 
 Rules:
-- Only reference tables that exist in the provided schema
+- CRITICAL: Only reference tables that ACTUALLY EXIST in the provided DATABASE SCHEMA.
+  If the user mentions a table or entity that does NOT exist in the schema (e.g., "productos",
+  "clientes", "pedidos"), you MUST:
+  1. Set "clarificacion_requerida" to true
+  2. In "mensaje_clarificacion", clearly tell the user that the table they mentioned does NOT
+     exist in the database, list the ACTUAL available tables, and suggest which existing table(s)
+     contain data related to what they are looking for.
+  3. Put ONLY the valid existing tables in "tablas" (leave empty if none match)
 - If the question is ambiguous, set clarificacion_requerida to true and provide
   2-3 concrete options in mensaje_clarificacion
 - If the question is completely outside the data domain, set fuera_de_dominio to true
@@ -163,10 +170,19 @@ Analyze the question and return the structured JSON intent.
 
         if unknown_tables and not intent.get("fuera_de_dominio"):
             intent["clarificacion_requerida"] = True
+            # Build a helpful mapping of available tables and their descriptions
+            table_descriptions = []
+            for t in schema["available_tables"]:
+                table_info = schema.get("tables", {}).get(t, {})
+                cols = table_info.get("columns", [])
+                col_names = [c["name"] for c in cols[:5]] if cols else []
+                col_hint = f" (contiene: {', '.join(col_names)}...)" if col_names else ""
+                table_descriptions.append(f"  - {t}{col_hint}")
+            tables_list = "\n".join(table_descriptions)
             intent["mensaje_clarificacion"] = (
-                f"The tables {', '.join(unknown_tables)} do not exist in your database. "
-                f"Available tables are: {', '.join(schema['available_tables'])}. "
-                f"Could you rephrase your question using the available data?"
+                f"La tabla '{', '.join(unknown_tables)}' no existe en tu base de datos. "
+                f"Las tablas disponibles son:\n{tables_list}\n\n"
+                f"¿Podrías reformular tu pregunta usando alguna de estas tablas?"
             )
 
         intent["tablas"] = validated_tables
