@@ -291,7 +291,7 @@ export default function Chat({
   const handleSend = () => handleSendText(input);
 
   return (
-    <div className="border border-brand-light rounded-2xl bg-white h-[600px] flex flex-col shadow-card overflow-hidden">
+    <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-brand-light bg-brand-light/20 flex items-center gap-2">
         <div className="w-8 h-8 rounded-xl bg-brand-dark flex items-center justify-center">

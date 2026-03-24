@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Chat, { type Message } from "@/components/Chat";
-import ChatSidebar from "@/components/ChatSidebar";
+import AppSidebar from "@/components/AppSidebar";
 import { type ChatSession, type ChatMessage } from "@/lib/chatHistory";
 import {
   X,
@@ -15,16 +15,18 @@ import {
   BarChart3,
   ShieldCheck,
   ChevronRight,
-  Sparkles,
+  ChevronDown,
+  FolderOpen,
+  HelpCircle,
 } from "lucide-react";
 
-// ─── Modal "Saber más" ────────────────────────────────────────────────────────
+// ─── Sections for right panel ────────────────────────────────────────────────
 
-const MODAL_SECTIONS = [
+const PANEL_SECTIONS = [
   {
     icon: MessageCircle,
     title: "Preguntas en lenguaje natural",
-    body: "Escribe tus preguntas exactamente como se las harías a un colega. No necesitas saber SQL ni conocer la estructura de tu base de datos — DataLitics entiende el contexto y obtiene la información por ti.",
+    body: "Escribe tus preguntas exactamente como se las harías a un colega. No necesitas saber SQL ni conocer la estructura de tu base de datos.",
     examples: [
       "¿Cuáles fueron los productos más vendidos en Q3?",
       "Dame los clientes que compraron más de 3 veces este mes",
@@ -34,13 +36,13 @@ const MODAL_SECTIONS = [
   {
     icon: Zap,
     title: "Procesamiento inteligente",
-    body: "Cada consulta es procesada por un sistema de agentes de inteligencia artificial que trabajan en conjunto: interpretan tu intención, obtienen los datos correctos y los analizan — todo de forma automática y en segundos.",
+    body: "Cada consulta es procesada por un sistema de agentes de IA que trabajan en conjunto: interpretan tu intención, obtienen los datos y los analizan.",
     examples: [],
   },
   {
     icon: BarChart3,
     title: "Resultados e insights",
-    body: "Además de los datos, recibirás un análisis en lenguaje claro: tendencias, comparativas con períodos anteriores, valores atípicos y recomendaciones. No solo qué pasó, sino qué significa.",
+    body: "Además de los datos, recibirás análisis en lenguaje claro: tendencias, comparativas y recomendaciones accionables.",
     examples: [
       "Resúmenes automáticos de los resultados",
       "Comparativas y tendencias temporales",
@@ -49,25 +51,24 @@ const MODAL_SECTIONS = [
   {
     icon: Shield,
     title: "Seguridad incorporada",
-    body: "Cada interacción pasa por múltiples capas de protección que detectan y bloquean consultas maliciosas, accesos no autorizados y cualquier intento de obtener información fuera de tu alcance. Todo queda registrado en el log de auditoría.",
-    examples: [
-      "Protección automática ante consultas maliciosas",
-      "Registro de auditoría de cada interacción",
-    ],
+    body: "Cada interacción pasa por múltiples capas de protección. Todo queda registrado en el log de auditoría.",
+    examples: [],
   },
   {
     icon: ShieldCheck,
     title: "Acceso según tu rol",
-    body: "Cada usuario accede solo a la información que le corresponde. Los administradores configuran qué datos puede ver cada persona, y los datos sensibles se protegen de forma automática sin ninguna configuración extra.",
+    body: "Cada usuario accede solo a la información que le corresponde. Los datos sensibles se protegen automáticamente.",
     examples: [],
   },
   {
     icon: Building2,
     title: "Tu empresa, tu entorno",
-    body: "Los datos de tu organización están completamente aislados. Nadie externo — ni otras empresas que usen la plataforma — puede acceder a tu información. Cada empresa opera en su propio espacio seguro.",
+    body: "Los datos de tu organización están completamente aislados de otras empresas en la plataforma.",
     examples: [],
   },
 ];
+
+// ─── Info Modal ───────────────────────────────────────────────────────────────
 
 function InfoModal({ onClose }: { onClose: () => void }) {
   return (
@@ -75,44 +76,52 @@ function InfoModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-brand-deepest/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-[#003B52]/40 backdrop-blur-sm" />
       <div
-        className="relative bg-white rounded-3xl shadow-brand-lg w-full max-w-2xl max-h-[85vh] flex flex-col animate-slide-up"
+        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-brand-light">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#e7eff5]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-dark flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#20566d] flex items-center justify-center">
               <BookOpen size={17} className="text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-brand-deepest text-lg leading-none">¿Qué puedo hacer con DataLitics?</h2>
-              <p className="text-brand-mid text-xs mt-0.5">Guía de funcionalidades</p>
+              <h2 className="font-bold text-[#003f54] text-lg leading-none">
+                ¿Qué puedo hacer con DataLitics?
+              </h2>
+              <p className="text-[#8FAAB4] text-xs mt-0.5">Guía de funcionalidades</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-brand-light flex items-center justify-center hover:bg-brand-mid/30 transition-colors"
+            className="w-8 h-8 rounded-xl bg-[#edf5fb] flex items-center justify-center hover:bg-[#D9E1E7] transition-colors"
           >
-            <X size={16} className="text-brand-dark" />
+            <X size={16} className="text-[#20566d]" />
           </button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-          {MODAL_SECTIONS.map((s) => {
+          {PANEL_SECTIONS.map((s) => {
             const Icon = s.icon;
             return (
               <div key={s.title} className="flex gap-4">
-                <div className="w-9 h-9 rounded-xl bg-brand-light flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon size={17} className="text-brand-dark" />
+                <div className="w-9 h-9 rounded-xl bg-[#edf5fb] flex items-center justify-center shrink-0 mt-0.5">
+                  <Icon size={17} className="text-[#20566d]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-brand-deepest mb-1">{s.title}</h3>
-                  <p className="text-sm text-brand-dark/70 leading-relaxed">{s.body}</p>
+                  <h3 className="font-semibold text-[#003f54] mb-1">{s.title}</h3>
+                  <p className="text-sm text-[#41484c] leading-relaxed">{s.body}</p>
                   {s.examples.length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {s.examples.map((ex) => (
-                        <li key={ex} className="flex items-start gap-1.5 text-xs text-brand-dark/60">
-                          <ChevronRight size={12} className="text-brand-mid shrink-0 mt-0.5" />
+                        <li
+                          key={ex}
+                          className="flex items-start gap-1.5 text-xs text-[#41484c]/70"
+                        >
+                          <ChevronRight
+                            size={12}
+                            className="text-[#8FAAB4] shrink-0 mt-0.5"
+                          />
                           {ex}
                         </li>
                       ))}
@@ -123,55 +132,13 @@ function InfoModal({ onClose }: { onClose: () => void }) {
             );
           })}
         </div>
-        <div className="px-6 py-4 border-t border-brand-light bg-brand-light/20 rounded-b-3xl">
-          <p className="text-xs text-brand-mid text-center">
+        <div className="px-6 py-4 border-t border-[#e7eff5] bg-[#edf5fb]/50 rounded-b-3xl">
+          <p className="text-xs text-[#8FAAB4] text-center">
             DataLitics · Consulta empresarial con inteligencia artificial
           </p>
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── InfoPanel ────────────────────────────────────────────────────────────────
-
-function InfoPanel() {
-  const [modalOpen, setModalOpen] = useState(false);
-  return (
-    <>
-      <div className="border border-brand-light rounded-2xl bg-white shadow-card p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-brand-dark" />
-          <h2 className="font-semibold text-brand-deepest text-sm">¿Qué puedo preguntar?</h2>
-        </div>
-        <p className="text-sm text-brand-dark/70 leading-relaxed">
-          Escribe cualquier pregunta sobre los datos de tu empresa en español.
-          DataLitics la procesa de forma segura y te devuelve resultados claros
-          con análisis incluido — sin necesitar conocimientos técnicos.
-        </p>
-        <div className="flex flex-wrap gap-2 text-xs">
-          {[
-            { icon: Shield, label: "Seguridad IA" },
-            { icon: Zap, label: "Agentes IA" },
-            { icon: BarChart3, label: "Insights auto" },
-          ].map(({ icon: Icon, label }) => (
-            <span key={label} className="flex items-center gap-1 bg-brand-light text-brand-deepest px-2.5 py-1 rounded-lg font-medium">
-              <Icon size={11} />
-              {label}
-            </span>
-          ))}
-        </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 text-sm font-semibold text-brand-dark hover:text-brand-deepest transition-colors group"
-        >
-          <BookOpen size={15} />
-          Saber más
-          <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-        </button>
-      </div>
-      {modalOpen && <InfoModal onClose={() => setModalOpen(false)} />}
-    </>
   );
 }
 
@@ -181,22 +148,34 @@ export default function HomeContent() {
   const { user } = useAuth();
   const firstName = user?.displayName?.split(" ")[0] ?? "de nuevo";
 
-  // Sesión activa y mensajes iniciales para cargar conversaciones anteriores
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionTitle, setActiveSessionTitle] = useState<string | null>(null);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  // chatKey: incrementar fuerza el remount de Chat (reset de estado interno)
   const [chatKey, setChatKey] = useState(0);
-  // sidebarRefresh: incrementar recarga la lista del sidebar
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      next.has(title) ? next.delete(title) : next.add(title);
+      return next;
+    });
+  };
 
   const handleNewChat = () => {
     setActiveSessionId(null);
+    setActiveSessionTitle(null);
     setInitialMessages([]);
     setChatKey((k) => k + 1);
   };
 
   const handleSelectSession = (session: ChatSession, messages: ChatMessage[]) => {
     setActiveSessionId(session.id);
+    setActiveSessionTitle(session.title);
     setInitialMessages(
       messages.map((m) => ({
         role: m.role,
@@ -209,41 +188,163 @@ export default function HomeContent() {
 
   const handleSessionCreated = (sessionId: string) => {
     setActiveSessionId(sessionId);
-    // Recargar sidebar para mostrar la nueva conversación
     setSidebarRefresh((r) => r + 1);
   };
 
+  const handleSuggestion = (text: string) => {
+    setPendingMessage(text);
+  };
+
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* Sidebar de historial */}
-      <ChatSidebar
+    <div className="flex h-screen overflow-hidden bg-[#edf5fb]">
+      {/* ── Left Sidebar ── */}
+      <AppSidebar
         activeSessionId={activeSessionId}
         onNewChat={handleNewChat}
         onSelectSession={handleSelectSession}
         refreshTrigger={sidebarRefresh}
       />
 
-      {/* Contenido principal */}
-      <main className="flex-1 p-6 min-w-0 overflow-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-brand-deepest">
-            Bienvenido, {firstName}
-          </h1>
-          <p className="text-brand-dark/60 text-sm mt-1">
-            Haz una pregunta sobre tus datos y DataLitics se encarga del resto.
-          </p>
-        </div>
+      {/* ── Main chat area ── */}
+      <main
+        className={`ml-[260px] flex-1 flex flex-col relative transition-all duration-300 ${rightPanelOpen ? "mr-[300px]" : "mr-0"}`}
+        style={{
+          backgroundImage:
+            "radial-gradient(rgba(0,63,84,0.06) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      >
+        {/* Top bar */}
+        <header className="h-16 flex items-center justify-between px-8 bg-white/70 backdrop-blur-xl border-b border-[#c0c7cd]/20 sticky top-0 z-10 shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <FolderOpen size={18} className="text-[#003f54]" />
+              <h2 className="font-bold text-[#003f54] tracking-tight">
+                {activeSessionTitle || `Bienvenido, ${firstName}`}
+              </h2>
+            </div>
+            <div className="h-4 w-px bg-[#c0c7cd]/40" />
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+              Modo Consulta
+            </span>
+          </div>
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+        {/* Chat — fills remaining height */}
+        <div className="flex-1 overflow-hidden">
           <Chat
             key={chatKey}
             sessionId={activeSessionId}
             onSessionCreated={handleSessionCreated}
             initialMessages={initialMessages}
+            pendingMessage={pendingMessage}
+            onPendingConsumed={() => setPendingMessage(null)}
           />
-          <InfoPanel />
         </div>
       </main>
+
+      {/* ── Botón flotante para abrir panel (visible solo cuando está cerrado) ── */}
+      {!rightPanelOpen && (
+        <button
+          onClick={() => setRightPanelOpen(true)}
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-[#003f54] text-white flex flex-col items-center gap-1.5 px-2 py-4 rounded-l-xl shadow-lg hover:bg-[#20566d] transition-colors"
+          title="¿Qué puedo hacer?"
+        >
+          <HelpCircle size={15} />
+          <span className="text-[9px] font-bold uppercase tracking-widest" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+            ¿Qué puedo hacer?
+          </span>
+        </button>
+      )}
+
+      {/* ── Right info panel ── */}
+      <aside
+        className={`fixed right-0 top-0 h-full w-[300px] z-30 bg-white border-l border-[#c0c7cd]/20 flex flex-col shadow-sm transition-transform duration-300 ${rightPanelOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="px-5 py-4 border-b border-[#c0c7cd]/20 shrink-0 flex items-center justify-between gap-3">
+          <h3 className="font-black text-xs tracking-widest text-[#003f54] uppercase flex items-center gap-2">
+            <HelpCircle size={15} />
+            ¿Qué puedo hacer?
+          </h3>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-1 text-[11px] font-semibold text-[#20566d] hover:text-[#003f54] transition-colors"
+            >
+              <BookOpen size={12} />
+              Ver guía
+            </button>
+            <button
+              onClick={() => setRightPanelOpen(false)}
+              className="w-6 h-6 rounded-lg bg-[#edf5fb] flex items-center justify-center hover:bg-[#D9E1E7] transition-colors"
+              title="Ocultar panel"
+            >
+              <ChevronRight size={13} className="text-[#20566d]" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-2">
+          {PANEL_SECTIONS.map((s) => {
+            const Icon = s.icon;
+            const hasExamples = s.examples.length > 0;
+            const isExpanded = expandedSections.has(s.title);
+            return (
+              <div key={s.title} className="rounded-xl overflow-hidden border border-transparent hover:border-[#e7eff5] transition-colors">
+                {/* Header — clickable only if has examples */}
+                <div
+                  className={`flex items-center gap-2 px-2 py-2.5 rounded-xl ${hasExamples ? "cursor-pointer hover:bg-[#edf5fb]" : ""} transition-colors`}
+                  onClick={() => hasExamples && toggleSection(s.title)}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[#edf5fb] flex items-center justify-center shrink-0">
+                    <Icon size={14} className="text-[#003f54]" />
+                  </div>
+                  <h4 className="text-xs font-bold text-[#003f54] flex-1">{s.title}</h4>
+                  {hasExamples && (
+                    <ChevronDown
+                      size={13}
+                      className={`text-[#8FAAB4] transition-transform duration-200 shrink-0 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  )}
+                </div>
+                {/* Examples — collapsible */}
+                {hasExamples && isExpanded && (
+                  <div className="space-y-1.5 ml-9 pb-2 pr-2">
+                    {s.examples.map((ex) => (
+                      <button
+                        key={ex}
+                        onClick={() => handleSuggestion(ex)}
+                        className="w-full text-left text-[11px] font-medium text-slate-600 bg-white border border-slate-100 px-3 py-2 rounded-xl hover:bg-[#003f54] hover:text-white transition-all shadow-sm"
+                      >
+                        &ldquo;{ex}&rdquo;
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Pro tip card */}
+          <div className="bg-[#003f54] rounded-2xl p-5 text-white relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl" />
+            <h4 className="text-xs font-bold uppercase tracking-widest mb-2">Tip</h4>
+            <p className="text-[11px] leading-relaxed opacity-90">
+              Usa palabras como &ldquo;comparar con&rdquo; o &ldquo;mostrar tendencia&rdquo; para activar el motor de visualización automático.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="p-6 border-t border-[#c0c7cd]/20 shrink-0">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Sistemas conectados
+          </div>
+        </div>
+      </aside>
+
+      {modalOpen && <InfoModal onClose={() => setModalOpen(false)} />}
     </div>
   );
 }

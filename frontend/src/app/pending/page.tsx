@@ -6,11 +6,11 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { getUserStatus } from "@/lib/api";
-import { Clock, CheckCircle } from "lucide-react";
+import { Bell, Settings, Clock, ArrowRight } from "lucide-react";
 
 export default function PendingPage() {
   const router = useRouter();
-  const { user, loading, status, refreshProfile } = useAuth();
+  const { user, loading, status, tenantId, refreshProfile } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -43,59 +43,121 @@ export default function PendingPage() {
     router.push("/");
   };
 
+  const initials = user?.displayName
+    ? user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.email?.[0]?.toUpperCase() ?? "?";
+
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-light/30">
+    <div className="bg-mesh min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-dark border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 bg-brand-light/20">
-      <div className="max-w-md w-full text-center space-y-6 animate-fade-in">
+    <div className="bg-mesh min-h-screen flex flex-col text-[#151d21]">
 
-        <div className="w-20 h-20 bg-amber-100 border-2 border-amber-200 rounded-2xl flex items-center justify-center mx-auto animate-float">
-          <Clock size={36} className="text-amber-600" />
+      {/* Header */}
+      <header className="bg-white/70 backdrop-blur-xl border-b border-[#003f54]/10 shadow-sm fixed top-0 z-50 flex justify-between items-center w-full px-6 h-16">
+        <div className="text-xl font-bold tracking-tighter text-[#003f54]">
+          DataLitics
         </div>
-
-        <div>
-          <h1 className="text-2xl font-bold text-brand-deepest">Solicitud pendiente</h1>
-          <p className="text-brand-dark/60 mt-2 leading-relaxed text-sm">
-            Tu cuenta fue creada correctamente. Tu administrador debe aprobar tu acceso antes de
-            que puedas usar DataLitics.
-          </p>
+        <div className="flex items-center gap-1">
+          <button className="text-slate-500 hover:text-[#003f54] transition-colors p-2 rounded-full hover:bg-slate-50">
+            <Bell size={20} />
+          </button>
+          <button className="text-slate-500 hover:text-[#003f54] transition-colors p-2 rounded-full hover:bg-slate-50">
+            <Settings size={20} />
+          </button>
         </div>
+      </header>
 
-        <div className="bg-white border border-brand-light rounded-2xl p-5 text-left space-y-3 shadow-card">
-          <p className="text-sm font-semibold text-brand-deepest flex items-center gap-2">
-            <Clock size={14} className="text-amber-500" />
-            ¿Qué pasa ahora?
-          </p>
-          <ul className="space-y-2">
-            {[
-              "El administrador de tu empresa recibirá una notificación.",
-              "Una vez aprobado, se te redirigirá automáticamente al chat.",
-              "Esta página se actualiza cada 10 segundos.",
-            ].map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-brand-dark/70">
-                <CheckCircle size={13} className="text-brand-mid shrink-0 mt-0.5" />
-                {item}
-              </li>
-            ))}
-          </ul>
+      {/* Main */}
+      <main className="flex-grow flex flex-col items-center justify-center px-4 pt-16 pb-20">
+        <div className="w-full max-w-2xl text-center space-y-12">
+
+          {/* Hourglass icon */}
+          <div className="relative inline-flex items-center justify-center">
+            <div className="absolute inset-0 bg-[#003f54]/5 rounded-full blur-3xl scale-150" />
+            <div className="relative bg-white shadow-xl rounded-full p-8 border border-[#c0c7cd]/20">
+              <Clock size={64} className="text-[#003f54]" />
+            </div>
+          </div>
+
+          {/* Title & subtitle */}
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl font-black text-[#003f54] tracking-tight leading-tight">
+              Tu cuenta está pendiente de aprobación
+            </h1>
+            <p className="text-lg md:text-xl text-[#36637c] font-medium max-w-lg mx-auto leading-relaxed">
+              Un administrador revisará tu solicitud pronto
+            </p>
+          </div>
+
+          {/* User card + pulse */}
+          <div className="flex flex-col items-center gap-6">
+            <div className="glass-card rounded-2xl p-6 w-full max-w-sm text-left shadow-lg space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-[#20566d] flex items-center justify-center text-white text-sm font-bold overflow-hidden shadow-inner shrink-0">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{initials}</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#003f54] tracking-tight">
+                    {user?.displayName ?? "Usuario"}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">{user?.email}</p>
+                </div>
+              </div>
+              {tenantId && (
+                <div className="pt-3 border-t border-[#003f54]/5 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Empresa</span>
+                  <span className="text-xs font-semibold text-[#003f54]">{tenantId}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex gap-1.5 items-center">
+                <div className="w-2 h-2 rounded-full bg-[#003f54] dot-pulse" />
+                <div className="w-2 h-2 rounded-full bg-[#003f54] dot-pulse" style={{ animationDelay: "0.2s" }} />
+                <div className="w-2 h-2 rounded-full bg-[#003f54] dot-pulse" style={{ animationDelay: "0.4s" }} />
+              </div>
+              <p className="text-xs font-bold text-[#003f54]/60 tracking-widest uppercase">
+                Verificando estado automáticamente...
+              </p>
+            </div>
+          </div>
+
         </div>
+      </main>
 
-        <div className="flex items-center gap-2 justify-center text-sm text-brand-mid">
-          <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-          Esperando aprobación...
+      {/* Footer */}
+      <footer className="w-full py-8 flex flex-col items-center gap-4">
+        <div className="w-16 h-1 bg-[#003f54]/10 rounded-full" />
+        <div className="flex flex-col md:flex-row items-center gap-2 text-sm text-slate-500">
+          <span>¿Necesitas ayuda inmediata?</span>
+          <a
+            href="mailto:support@datalitics.com"
+            className="text-[#003f54] font-bold hover:underline transition-all flex items-center gap-1 group"
+          >
+            Contactar a soporte
+            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+          </a>
         </div>
-
         <button
           onClick={handleLogout}
-          className="text-sm text-brand-mid hover:text-brand-dark transition-colors underline"
+          className="text-xs text-slate-400 hover:text-[#003f54] transition-colors underline"
         >
           Cerrar sesión
         </button>
-      </div>
-    </main>
+        <p className="text-[10px] text-slate-400 font-medium tracking-tight">
+          © 2024 DATALITICS ENTERPRISE AI. TODOS LOS DERECHOS RESERVADOS.
+        </p>
+      </footer>
+
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import logging
 import time
 
 from fastapi import APIRouter, Header, HTTPException
+from openai import BadRequestError as OpenAIBadRequestError
 
 from app.agents.agent_execution import ExecutionAgent
 from app.agents.agent_insights import InsightsAgent
@@ -297,6 +298,52 @@ async def execute_query(
 
     except HTTPException:
         raise
+    except OpenAIBadRequestError as e:
+        # Azure OpenAI content filter blocked the request (jailbreak, etc.)
+        error_body = e.body or {}
+        inner = (error_body.get("error") or {}).get("innererror") or {}
+        cf_result = inner.get("content_filter_result", {})
+        jailbreak_detected = cf_result.get("jailbreak", {}).get("detected", False)
+        total_time = (time.time() - pipeline_start) * 1000
+
+        _tenant = locals().get("tenant_id", request.tenant_id)
+        _role = locals().get("user_role", "unknown")
+        _email = locals().get("user_email", "")
+        _uid = locals().get("uid", "")
+
+        audit_store.log_security_event(
+            tenant_id=_tenant,
+            user_role=_role,
+            event_type="content_filter_jailbreak" if jailbreak_detected else "content_filter",
+            details={"jailbreak_detected": jailbreak_detected, "content_filter_result": cf_result},
+            user_email=_email,
+        )
+        audit_store.log_query(
+            tenant_id=_tenant,
+            user_role=_role,
+            question=request.question,
+            sql="",
+            status="blocked",
+            risk_level="high",
+            block_type="content_filter_jailbreak" if jailbreak_detected else "content_filter",
+            block_reason="Consulta bloqueada: intento de jailbreak detectado por Azure OpenAI." if jailbreak_detected else "Consulta bloqueada por política de contenido.",
+            execution_time_ms=total_time,
+            user_email=_email,
+            uid=_uid,
+        )
+        logger.warning("Content filter blocked query: jailbreak=%s, tenant=%s", jailbreak_detected, _tenant)
+        return QueryResponse(
+            sql="",
+            explanation="Tu consulta fue bloqueada porque contiene un intento de manipulación del sistema." if jailbreak_detected else "Tu consulta fue bloqueada por política de contenido.",
+            data=[],
+            insights={"summary": "Consulta bloqueada por seguridad."},
+            security={
+                "status": "blocked",
+                "block_type": "content_filter_jailbreak" if jailbreak_detected else "content_filter",
+                "risk_level": "high",
+            },
+            trace=locals().get("trace", {}),
+        )
     except Exception as e:
         logger.error("Query execution failed: %s", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error") from e

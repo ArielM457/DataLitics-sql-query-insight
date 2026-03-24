@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import UserMenu from "@/components/UserMenu";
 import { MessageSquare, ClipboardList, Users, Database, ShieldAlert } from "lucide-react";
 
-const NO_NAV = ["/", "/auth", "/pending", "/join"];
+const NO_NAV = ["/", "/auth", "/pending", "/join", "/home", "/security", "/audit", "/admin", "/onboarding"];
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -30,8 +31,15 @@ export default function NavBar() {
 
   return (
     <nav className="border-b border-brand-light bg-white sticky top-0 z-10 px-6 h-14 flex items-center gap-6 shadow-sm">
-      <Link href="/home" className="font-bold text-brand-dark text-lg shrink-0 tracking-tight">
-        DataLitics
+      <Link href="/home" className="flex items-center gap-2 shrink-0">
+        <Image
+          src="/logo.png"
+          alt="DataLitics"
+          width={32}
+          height={32}
+          className="h-8 w-auto object-contain"
+        />
+        <span className="font-bold text-brand-dark text-lg tracking-tight">DataLitics</span>
       </Link>
 
       <div className="flex items-center gap-1">

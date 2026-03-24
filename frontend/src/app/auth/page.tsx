@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import LoginForm from "@/components/Auth/LoginForm";
 import RegisterForm from "@/components/Auth/RegisterForm";
@@ -57,7 +58,12 @@ export default function AuthPage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
 
         <div className="relative max-w-md animate-fade-in">
-          <h2 className="text-4xl font-bold text-white mb-3 tracking-tight">DataLitics</h2>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="bg-white rounded-xl p-2 shadow-lg flex-shrink-0">
+              <Image src="/logo.png" alt="DataLitics" width={44} height={44} className="h-11 w-auto object-contain" />
+            </div>
+            <span className="text-4xl font-extrabold tracking-tight text-white">DataLitics</span>
+          </div>
           <p className="text-brand-light/90 text-lg mb-12 leading-relaxed">
             Consulta tus datos empresariales en lenguaje natural. Sin SQL. Sin esperas.
           </p>
@@ -85,7 +91,10 @@ export default function AuthPage() {
         <div className="w-full max-w-sm animate-slide-up">
           {/* Logo mobile */}
           <div className="lg:hidden text-center mb-8">
-            <h1 className="text-2xl font-bold text-brand-deepest">DataLitics</h1>
+            <div className="flex items-center justify-center gap-2">
+              <Image src="/logo.png" alt="DataLitics" width={40} height={40} className="h-10 w-auto object-contain" />
+              <span className="text-2xl font-extrabold tracking-tight text-brand-deepest">DataLitics</span>
+            </div>
             <p className="text-brand-dark/60 text-sm mt-1">Consulta tus datos empresariales</p>
           </div>
 
