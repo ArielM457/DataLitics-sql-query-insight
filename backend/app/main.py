@@ -2,6 +2,7 @@
 
 import logging
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,12 +18,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger("dataagent")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Reload persistent stores after Firebase is confirmed initialized."""
+    from app.core.audit_store import audit_store
+    from app.core.user_store import user_store
+    audit_store._load_from_firestore()
+    user_store.reload()
+    logger.info("Persistent stores reloaded from Firestore")
+    yield
+
+
 # FastAPI instance
 app = FastAPI(
     title="DataAgent API",
     version="1.0.0",
     description="Multi-agent system that converts natural language questions to SQL queries, "
     "executes them securely, and explains the results.",
+    lifespan=lifespan,
 )
 
 # CORS middleware

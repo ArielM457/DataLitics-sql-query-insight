@@ -1,16 +1,28 @@
-"""User Store — In-memory store for invite codes and pending users.
+"""User Store — Firestore-backed store for invite codes and pending users.
 
-Stores invite codes and pending user registrations in memory.
-Acceptable for the hackathon (single-instance, no persistence needed).
-In production, replace with Firestore collections.
+Persists all state to Firestore so data survives server restarts.
+Falls back to in-memory if Firestore is unavailable (dev mode).
 """
 
 import logging
 import secrets
+import threading
 import time
 from dataclasses import asdict, dataclass
 
 logger = logging.getLogger("dataagent.core.user_store")
+
+_CODES_COLLECTION = "invite_codes"
+_PENDING_COLLECTION = "pending_users"
+
+
+def _get_firestore():
+    """Return Firestore client if Firebase is initialized, else None."""
+    try:
+        from firebase_admin import firestore
+        return firestore.client()
+    except Exception:
+        return None
 
 
 @dataclass
@@ -18,7 +30,7 @@ class InviteCode:
     code: str
     tenant_id: str
     company_name: str
-    created_by: str       # uid of the admin who generated it
+    created_by: str
     created_at: float
     expires_at: float
     used: bool = False
@@ -35,20 +47,68 @@ class PendingUser:
     tenant_id: str
     company_name: str
     requested_at: float
-    status: str = "pending"   # pending | approved | rejected
+    status: str = "pending"
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
 class UserStore:
-    """Thread-safe in-memory store for invite codes and pending users."""
+    """Firestore-backed store for invite codes and pending users.
+
+    All writes go to Firestore asynchronously. Reads are served from the
+    in-memory cache which is populated on startup from Firestore.
+    Falls back to memory-only if Firestore is not configured.
+    """
 
     def __init__(self):
         self._codes: dict[str, InviteCode] = {}
         self._pending: dict[str, PendingUser] = {}
+        self._load_from_firestore()
 
-    # ── Invite codes ──────────────────────────────────────────────────────────
+    def _load_from_firestore(self):
+        """Load existing invite codes and pending users from Firestore on startup."""
+        try:
+            db = _get_firestore()
+            if not db:
+                logger.info("Firestore not available — user store running in memory-only mode")
+                return
+
+            for doc in db.collection(_CODES_COLLECTION).stream():
+                data = doc.to_dict()
+                entry = InviteCode(**data)
+                self._codes[entry.code] = entry
+
+            for doc in db.collection(_PENDING_COLLECTION).stream():
+                data = doc.to_dict()
+                user = PendingUser(**data)
+                self._pending[user.uid] = user
+
+            logger.info(
+                "User store loaded from Firestore: %d invite codes, %d pending users",
+                len(self._codes), len(self._pending),
+            )
+        except Exception as e:
+            logger.warning("Could not load user store from Firestore: %s", e)
+
+    def reload(self):
+        """Reload data from Firestore. Call this after Firebase is confirmed initialized."""
+        self._codes.clear()
+        self._pending.clear()
+        self._load_from_firestore()
+
+    def _write_async(self, collection: str, doc_id: str, data: dict):
+        """Write a document to Firestore in a background thread (non-blocking)."""
+        def _write():
+            try:
+                db = _get_firestore()
+                if db:
+                    db.collection(collection).document(doc_id).set(data)
+            except Exception as ex:
+                logger.warning("Firestore write failed (%s/%s): %s", collection, doc_id, ex)
+        threading.Thread(target=_write, daemon=True).start()
+
+    # ── Invite codes ───────────────────────────────────────────────────────────
 
     def generate_invite_code(
         self,
@@ -57,7 +117,6 @@ class UserStore:
         created_by: str,
         expires_in_ms: int,
     ) -> InviteCode:
-        """Generate a 6-char alphanumeric invite code."""
         code = secrets.token_urlsafe(6)[:6].upper()
         entry = InviteCode(
             code=code,
@@ -69,11 +128,11 @@ class UserStore:
             used=False,
         )
         self._codes[code] = entry
+        self._write_async(_CODES_COLLECTION, code, entry.to_dict())
         logger.info("Generated invite code %s for tenant=%s", code, tenant_id)
         return entry
 
     def validate_invite_code(self, code: str) -> tuple[InviteCode | None, str | None]:
-        """Validate an invite code. Returns (entry, None) or (None, error_reason)."""
         entry = self._codes.get(code.upper())
         if not entry:
             return None, "Código no encontrado."
@@ -87,6 +146,7 @@ class UserStore:
         entry = self._codes.get(code.upper())
         if entry:
             entry.used = True
+            self._write_async(_CODES_COLLECTION, code, entry.to_dict())
 
     def get_codes_for_tenant(self, tenant_id: str) -> list[dict]:
         return [
@@ -95,7 +155,7 @@ class UserStore:
             if c.tenant_id == tenant_id
         ]
 
-    # ── Pending users ─────────────────────────────────────────────────────────
+    # ── Pending users ──────────────────────────────────────────────────────────
 
     def add_pending_user(
         self,
@@ -105,7 +165,6 @@ class UserStore:
         tenant_id: str,
         company_name: str,
     ) -> PendingUser:
-        """Add a user to the pending queue. Silently ignores duplicates."""
         if uid in self._pending:
             return self._pending[uid]
         user = PendingUser(
@@ -118,6 +177,7 @@ class UserStore:
             status="pending",
         )
         self._pending[uid] = user
+        self._write_async(_PENDING_COLLECTION, uid, user.to_dict())
         logger.info("Added pending user uid=%s for tenant=%s", uid, tenant_id)
         return user
 
@@ -129,9 +189,9 @@ class UserStore:
         ]
 
     def update_user_status(self, uid: str, status: str) -> bool:
-        """Update status for a pending user. Returns True if found."""
         if uid in self._pending:
             self._pending[uid].status = status
+            self._write_async(_PENDING_COLLECTION, uid, self._pending[uid].to_dict())
             return True
         return False
 

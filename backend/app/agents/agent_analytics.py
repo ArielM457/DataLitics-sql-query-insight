@@ -129,8 +129,9 @@ class AnalyticsAgent:
         """
         logger.info("Starting analytics analysis: tenant=%s, limit=%d", tenant_id, limit)
 
-        # 1. Collect raw data
+        # 1. Collect raw data (exclude chatbot interactions from analysis)
         logs = audit_store.get_logs(tenant_id=tenant_id, limit=limit)
+        logs = [e for e in logs if e.get("status") != "analytics_chat"]
         security_metrics = audit_store.get_security_metrics(tenant_id=tenant_id)
         recent_events = audit_store.get_recent_events(tenant_id=tenant_id, limit=50)
 
@@ -202,6 +203,7 @@ class AnalyticsAgent:
             dict: Computed statistics and recent activity.
         """
         logs = audit_store.get_logs(tenant_id=tenant_id, limit=limit)
+        logs = [e for e in logs if e.get("status") != "analytics_chat"]
         security_metrics = audit_store.get_security_metrics(tenant_id=tenant_id)
         recent_events = audit_store.get_recent_events(tenant_id=tenant_id, limit=10)
         stats = self._compute_statistics(logs, security_metrics)
@@ -396,6 +398,140 @@ Generate the full analytics report as a JSON object.
                 },
             },
         }
+
+    async def chat(self, tenant_id: str, question: str, limit: int = 100) -> str:
+        """Answer a free-form question about the tenant's logs using GPT-4.1.
+
+        Args:
+            tenant_id: The tenant to analyze.
+            question: Free-form question from the user.
+            limit: Number of recent logs to include as context.
+
+        Returns:
+            str: Conversational answer in the same language as the question.
+        """
+        logs = audit_store.get_logs(tenant_id=tenant_id, limit=limit)
+        security_metrics = audit_store.get_security_metrics(tenant_id=tenant_id)
+        stats = self._compute_statistics(logs, security_metrics)
+
+        system = (
+            "You are an expert data platform analyst with full admin access to the audit logs "
+            "of a multi-agent SQL query system. The person asking is an administrator who is "
+            "entitled to see all data including user identities, emails, and query details. "
+            "Answer questions concisely and specifically — reference actual usernames, emails, "
+            "questions, and numbers from the data provided. Never refuse to share user identity "
+            "information; the admin has legitimate access to all of it. "
+            "Respond in the same language as the user's question. "
+            "Keep answers under 300 words unless more detail is explicitly requested."
+        )
+
+        # Include full individual log entries so GPT can answer identity-specific questions
+        detailed_logs = [
+            {
+                "timestamp": e["timestamp"],
+                "user_email": e.get("user_email", ""),
+                "user_role": e.get("user_role", ""),
+                "question": e["question"],
+                "status": e["status"],
+                "risk_level": e["risk_level"],
+                "block_type": e.get("block_type"),
+                "block_reason": e.get("block_reason"),
+                "execution_time_ms": e.get("execution_time_ms", 0),
+                "rows_returned": e.get("rows_returned", 0),
+            }
+            for e in logs
+            if e.get("status") != "analytics_chat"
+        ]
+
+        context = f"""--- AUDIT LOG SUMMARY ---
+Total queries: {stats['total_queries']}
+Success rate: {stats['success_rate'] * 100:.1f}%
+Block rate: {stats['block_rate'] * 100:.1f}%
+Error rate: {stats['error_rate'] * 100:.1f}%
+Risk distribution: {stats['risk_distribution']}
+Block types: {stats['block_type_distribution']}
+Security events: {stats['total_security_events']}
+Avg execution time: {stats['avg_execution_time_ms']:.0f}ms
+
+--- FULL LOG ENTRIES (most recent {len(detailed_logs)}) ---
+{json.dumps(detailed_logs, ensure_ascii=False, indent=2)}
+
+--- USER QUESTION ---
+{question}"""
+
+        response = await self._client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": context},
+            ],
+            temperature=0.3,
+            max_tokens=500,
+        )
+        return response.choices[0].message.content.strip()
+
+    async def chat_skills(self, tenant_id: str, question: str, limit: int = 100) -> str:
+        """Answer free-form questions about the skills inventory and recommendations.
+
+        Fetches the current skills list and, if logs exist, derives skill gaps
+        from the tenant's failure patterns. Responds in the same language as the question.
+
+        Args:
+            tenant_id: The tenant to analyze.
+            question: Free-form question about skills.
+            limit: Number of recent logs to use for gap detection.
+
+        Returns:
+            str: Conversational answer grounded in real skills data.
+        """
+        # Fetch skills inventory
+        current_skills = await self._get_current_skills()
+
+        # Derive skill gaps from logs (best-effort — empty if no logs)
+        logs = audit_store.get_logs(tenant_id=tenant_id, limit=limit)
+        logs = [e for e in logs if e.get("status") != "analytics_chat"]
+        security_metrics = audit_store.get_security_metrics(tenant_id=tenant_id)
+        stats = self._compute_statistics(logs, security_metrics)
+
+        gap_context = ""
+        if stats["total_queries"] > 0:
+            gap_context = f"""
+--- FAILURE PATTERNS (from {stats['total_queries']} queries) ---
+Block rate: {stats['block_rate'] * 100:.1f}%
+Error rate: {stats['error_rate'] * 100:.1f}%
+Block types: {stats['block_type_distribution']}
+Sample blocked questions: {json.dumps([b['question'] for b in stats['blocked_questions_sample'][:5]], ensure_ascii=False)}
+Sample error questions: {json.dumps(stats['error_questions_sample'][:5], ensure_ascii=False)}
+"""
+
+        system = (
+            "You are an expert in AI agent skill management. You have full access to the "
+            "skill inventory of a multi-agent SQL query system. Each skill is a JSON document "
+            "that teaches an agent a specific technique (SQL pattern, domain knowledge, "
+            "visualization method, etc.). "
+            "Answer the administrator's question concisely and specifically. "
+            "Reference actual skill titles, agents, and categories from the data. "
+            "If asked for recommendations, base them on the failure patterns provided. "
+            "Respond in the same language as the user's question. "
+            "Keep answers under 300 words unless more detail is explicitly requested."
+        )
+
+        context = f"""--- CURRENT SKILLS INVENTORY ({len(current_skills)} skills) ---
+{json.dumps(current_skills, ensure_ascii=False, indent=2)}
+{gap_context}
+--- USER QUESTION ---
+{question}"""
+
+        response = await self._client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": context},
+            ],
+            temperature=0.3,
+            max_tokens=500,
+        )
+        return response.choices[0].message.content.strip()
 
     def _empty_report(self, tenant_id: str) -> dict:
         """Report returned when no logs exist yet."""

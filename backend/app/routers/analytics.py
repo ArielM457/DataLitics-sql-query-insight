@@ -9,8 +9,10 @@ Endpoints:
 import logging
 
 from fastapi import APIRouter, Header, HTTPException, Query
+from pydantic import BaseModel
 
 from app.agents.agent_analytics import AnalyticsAgent
+from app.core.audit_store import audit_store
 from app.core.auth import verify_firebase_token
 
 logger = logging.getLogger("dataagent.routers.analytics")
@@ -114,3 +116,93 @@ async def get_skills_suggestions(
     except Exception as e:
         logger.error("Skills suggestions failed: %s", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate skill suggestions") from e
+
+
+# ─── POST /analytics/chat ─────────────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    question: str
+    limit: int = 100
+
+
+@router.post("/chat")
+async def analytics_chat(
+    body: ChatRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Conversational chatbot that answers questions about the audit logs.
+
+    Accepts a natural language question and returns a concise, data-grounded
+    answer based on the tenant's audit log history. Responds in the same
+    language the question is written in.
+
+    Returns:
+        dict: answer (str) and tenant_id.
+    """
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
+
+        logger.info("Analytics chat: tenant=%s question=%r", tenant_id, body.question[:80])
+        answer = await analytics_agent.chat(
+            tenant_id=tenant_id,
+            question=body.question,
+            limit=body.limit,
+        )
+
+        # Save the chatbot interaction to audit logs
+        audit_store.log_query(
+            tenant_id=tenant_id,
+            user_role=user_context.get("role", "admin"),
+            question=body.question,
+            sql="",
+            status="analytics_chat",
+            risk_level="low",
+            user_email=user_context.get("email", ""),
+            uid=user_context.get("uid", ""),
+        )
+
+        return {"answer": answer, "tenant_id": tenant_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Analytics chat failed: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process chat question") from e
+
+
+# ─── POST /analytics/skills-chat ──────────────────────────────────────────────
+
+@router.post("/skills-chat")
+async def skills_chat(
+    body: ChatRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Conversational chatbot about the skills inventory and recommendations.
+
+    Answers free-form questions about existing skills, missing capabilities,
+    and which new skills would reduce observed failure rates. Responds in
+    the same language as the question.
+
+    Returns:
+        dict: answer (str) and tenant_id.
+    """
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
+
+        logger.info("Skills chat: tenant=%s question=%r", tenant_id, body.question[:80])
+        answer = await analytics_agent.chat_skills(
+            tenant_id=tenant_id,
+            question=body.question,
+            limit=body.limit,
+        )
+        return {"answer": answer, "tenant_id": tenant_id}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Skills chat failed: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to process skills chat question") from e

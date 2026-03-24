@@ -206,4 +206,41 @@ export async function rejectUserAPI(uid: string) {
   return response.data;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Analytics — AI-powered log analysis and chatbot
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getAnalyticsSummary(limit = 100) {
+  const response = await api.get("/analytics/summary", { params: { limit } });
+  return response.data as Record<string, unknown>;
+}
+
+export async function analyticsChat(question: string, limit = 100) {
+  const response = await api.post("/analytics/chat", { question, limit });
+  return response.data as { answer: string; tenant_id: string };
+}
+
+export async function skillsChat(question: string, limit = 100) {
+  const response = await api.post("/analytics/skills-chat", { question, limit });
+  return response.data as { answer: string; tenant_id: string };
+}
+
+export async function listSkills(agent?: string) {
+  const params = agent ? { agent } : {};
+  const response = await api.get("/skills", { params });
+  return response.data as {
+    skills: Array<{
+      id: string;
+      title: string;
+      description: string;
+      agent: string;
+      category: string;
+      tags: string[];
+      active: boolean;
+    }>;
+    total: number;
+    agents: string[];
+  };
+}
+
 export default api;

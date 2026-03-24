@@ -35,6 +35,7 @@ const STATUS_COLORS: Record<string, string> = {
   error: "bg-red-100 text-red-700",
   warning: "bg-amber-100 text-amber-700",
   clarification_needed: "bg-amber-100 text-amber-700",
+  analytics_chat: "bg-indigo-100 text-indigo-700",
 };
 
 export default function Audit() {
@@ -152,6 +153,8 @@ export default function Audit() {
                 <option value="success">Exitoso</option>
                 <option value="blocked">Bloqueado</option>
                 <option value="error">Error</option>
+                <option value="clarification_needed">Clarificación</option>
+                <option value="analytics_chat">Chat analítico</option>
               </select>
             </div>
             <div>

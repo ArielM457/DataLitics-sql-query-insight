@@ -1,0 +1,1056 @@
+{
+  "$schema": "https://dataapibuilder.azureedge.net/schemas/v1.1.5/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('TENANT_DATALITICS_EJAT_CONNECTION')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "mode": "production",
+      "cors": {
+        "origins": [
+          "http://localhost:3000",
+          "https://*.azurecontainerapps.io"
+        ],
+        "allow-credentials": true
+      },
+      "authentication": {
+        "provider": "StaticWebApps"
+      }
+    }
+  },
+  "entities": {
+    "contexto_macroeconomico": {
+      "source": "dbo.contexto_macroeconomico",
+      "rest": {
+        "path": "/contexto_macroeconomico"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "ano_fiscal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "mes_del_ano",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "trimestre_fiscal",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_oficial_bcb_promedio_mes",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_paralelo_promedio_mes",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "brecha_cambiaria_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_anual_del_ano_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_acumulada_hasta_mes_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_mensual_estimada_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "numero_de_bloqueos_documentados_activos",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_impacto_de_bloqueos_en_mes",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ciudades_afectadas_por_bloqueos",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "causas_principales_de_bloqueos",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "clima_predominante_del_mes",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_impacto_climatico",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "hay_crisis_de_acceso_a_dolares",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "hay_escasez_de_combustible_diesel",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_costo_combustible_vs_2021",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "es_ano_electoral",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "hay_crisis_macroeconomica_severa",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_inspeccion_aduanal_promedio_pct",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "tasa_de_financiamiento_promedio_pct_mensual",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "morosidad_de_cartera_promedio_pct",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_de_robo_promedio_en_rutas_pct",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "tarifa_itf_impuesto_transacciones_pct",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tasa_de_merma_en_transporte_pct",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_peaje_aduanal_por_contenedor_usd",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "indice_de_sobrestock_referencia_operativa",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "indice_de_quiebre_stock_referencia_operativa",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_mantenimiento_almacen_mensual_porcentaje",
+          "type": "float",
+          "sensitive": false
+        }
+      ]
+    },
+    "historial_simulaciones": {
+      "source": "dbo.historial_simulaciones",
+      "rest": {
+        "path": "/historial_simulaciones"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "fecha_simulacion",
+          "type": "datetime2",
+          "sensitive": false
+        },
+        {
+          "name": "producto_analizado",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "ruta_logistica",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_simulado",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "demanda_ideal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "demanda_crisis",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "unidades_estancadas",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "costo_almacenaje_extra_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "penalizaciones_clientes_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "lucro_cesante_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "impacto_financiero_total_bs",
+          "type": "float",
+          "sensitive": false
+        }
+      ]
+    },
+    "historial_ventas": {
+      "source": "dbo.historial_ventas",
+      "rest": {
+        "path": "/historial_ventas"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "fecha_transaccion",
+          "type": "datetime2",
+          "sensitive": false
+        },
+        {
+          "name": "ano_fiscal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "mes_del_ano",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "dia_de_la_semana",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "trimestre_fiscal",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "categoria_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "pais_de_origen_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_vencimiento_del_producto",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ciudad_destino_entrega",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_almacen_destino",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_cliente",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cliente",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_credito_estandar",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "unidades_vendidas",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "peso_total_en_kilogramos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "precio_de_costo_unitario_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "precio_de_venta_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "precio_de_venta_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "margen_bruto_unitario_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "margen_bruto_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "descuento_aplicado_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ingreso_total_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ingreso_total_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_venta_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "utilidad_bruta_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "modalidad_de_pago",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "promocion_activa",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_oficial_bcb",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_paralelo_mercado_informal",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_usado_en_transaccion",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "uso_de_tipo_de_cambio_paralelo",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "brecha_cambiaria_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_anual_del_ano_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_acumulada_hasta_mes_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "clima_predominante_del_mes",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_impacto_climatico",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_estacionalidad_producto",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "factor_de_impacto_por_bloqueo",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "afectado_por_bloqueo_documentado",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "descripcion_del_evento_de_bloqueo",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_bloqueo_activos",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "quiebre_de_stock",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "itf_cobrado_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "monto_efectivamente_cobrado_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "monto_moroso_vencido_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_atraso_en_cobranza",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ruta_de_transporte",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_de_robo_en_transito_porcentaje",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "hubo_robo_en_transito",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_perdida_por_robo_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_financiamiento_linea_credito_en_usd",
+          "type": "float",
+          "sensitive": false
+        }
+      ]
+    },
+    "importaciones_logistica": {
+      "source": "dbo.importaciones_logistica",
+      "rest": {
+        "path": "/importaciones_logistica"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "fecha_de_pedido_de_importacion",
+          "type": "datetime2",
+          "sensitive": false
+        },
+        {
+          "name": "fecha_de_llegada_a_almacen",
+          "type": "datetime2",
+          "sensitive": false
+        },
+        {
+          "name": "ano_fiscal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "mes_de_pedido",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "trimestre_fiscal",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_producto_importado",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "categoria_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "pais_de_origen_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_proveedor_extranjero",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_vencimiento_del_producto",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "unidades_recibidas",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "peso_importado_en_kilogramos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "merma_por_danos_en_transporte_kg",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "peso_neto_util_en_kilogramos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "precio_de_compra_unitario_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_mercaderia_importada_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_flete_y_seguro_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "valor_cif_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "porcentaje_de_arancel_ga",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "arancel_ga_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "iva_de_importacion_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_total_con_impuestos_aduanales_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_total_con_impuestos_aduanales_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_por_kilogramo_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_oficial_bcb_en_fecha_pedido",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_paralelo_en_fecha_pedido",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_usado_en_transaccion",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "uso_de_tipo_de_cambio_paralelo",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "brecha_cambiaria_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ciudad_destino_del_almacen",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_almacen_destino",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_transito_normal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_retraso_por_bloqueo",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_retraso_en_aduana",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_retraso_por_clima_derrumbes",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_retraso_total",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "motivo_principal_de_retraso",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_cobertura_de_stock_objetivo",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_penalizacion_por_retraso_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_peaje_y_control_fronterizo_en_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "hubo_inspeccion_aduanal",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_inspeccion_aduanal_anual_porcentaje",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "costo_extra_inspeccion_aduanal_en_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ruta_de_transporte_inland",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "riesgo_de_robo_en_ruta_porcentaje",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "hubo_robo_en_transporte",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_perdida_por_robo_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "dias_de_financiamiento_utilizado",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_financiamiento_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tasa_financiamiento_mensual_aplicada_pct",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "compra_excesiva_empirica_sobrestock",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "afectado_por_bloqueo_documentado",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_anual_del_ano_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        }
+      ]
+    },
+    "inventario_mensual": {
+      "source": "dbo.inventario_mensual",
+      "rest": {
+        "path": "/inventario_mensual"
+      },
+      "permissions": [
+        {
+          "role": "analyst",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "manager",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "actions": [
+            {
+              "action": "read"
+            }
+          ]
+        }
+      ],
+      "_columns": [
+        {
+          "name": "ano_fiscal",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "mes_del_ano",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "trimestre_fiscal",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "nombre_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "categoria_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "pais_de_origen_del_producto",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "unidades_ingresadas_en_mes",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "kilogramos_ingresados_en_mes",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "unidades_vendidas_en_mes",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "kilogramos_vendidos_en_mes",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "stock_neto_en_kilogramos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "velocidad_de_rotacion_mensual",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "indicador_de_quiebre_de_stock",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "indicador_de_sobrestock",
+          "type": "nvarchar",
+          "sensitive": false
+        },
+        {
+          "name": "costo_de_inmovilizacion_por_sobrestock_en_bs",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "ingresos_de_ventas_del_mes_en_bolivianos",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "numero_de_transacciones_del_mes",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_oficial_bcb_referencia",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "tipo_de_cambio_paralelo_referencia",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_anual_del_ano_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "inflacion_acumulada_hasta_mes_en_porcentaje",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "numero_de_pallets_estimados",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "costo_mensual_almacenamiento_en_bolivianos",
+          "type": "bigint",
+          "sensitive": false
+        },
+        {
+          "name": "revaluacion_de_inventario_por_tc_en_usd",
+          "type": "float",
+          "sensitive": false
+        },
+        {
+          "name": "costo_total_mantenimiento_inventario_bs",
+          "type": "float",
+          "sensitive": false
+        }
+      ]
+    }
+  }
+}

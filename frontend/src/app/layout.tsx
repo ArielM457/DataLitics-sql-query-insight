@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={inter.className}>
-      <body className="bg-gray-50 min-h-screen">
+      <body className="bg-gray-50 min-h-screen" suppressHydrationWarning>
         <AuthProvider>
           <NavBar />
           {children}

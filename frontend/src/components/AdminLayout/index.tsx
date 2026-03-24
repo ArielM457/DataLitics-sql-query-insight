@@ -8,11 +8,13 @@ import {
   ClipboardList,
   Users,
   Database,
+  Sparkles,
 } from "lucide-react";
 
 const ADMIN_NAV = [
   { href: "/security", label: "Seguridad", icon: ShieldAlert },
   { href: "/audit", label: "Auditoría", icon: ClipboardList },
+  { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/admin", label: "Equipo", icon: Users },
   { href: "/onboarding", label: "Base de datos", icon: Database },
 ];
