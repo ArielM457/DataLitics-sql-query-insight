@@ -1,0 +1,17 @@
+{
+  "id": "analytics_001",
+  "title": "Interaction Pattern Recognition",
+  "description": "Techniques for identifying recurring themes, peak usage, and behavioral clusters in query logs",
+  "agent": "agent_analytics",
+  "category": "pattern_analysis",
+  "content": "# Interaction Pattern Recognition\n\n## Goal\nExtract meaningful patterns from query logs to understand how users interact with the data platform.\n\n## Key Patterns to Detect\n\n### 1. Topic Clustering\n- Group questions by domain keyword frequency (sales, inventory, employees, finance)\n- Identify the 3-5 most queried entities (tables/concepts)\n- Flag questions that span multiple domains (complex cross-domain queries)\n\n### 2. Temporal Patterns\n- Identify whether queries cluster at specific times (morning reports, end-of-month closes)\n- Detect spikes in query volume that correlate with business events\n- Track whether usage is growing, stable, or declining over the observed period\n\n### 3. Role-Based Behavior\n- Compare query complexity by user role (analyst vs manager vs admin)\n- Identify whether certain roles consistently trigger blocks or errors\n- Detect escalation patterns: analyst questions that are borderline for their role\n\n### 4. Retry Patterns\n- Questions asked multiple times (user rephrasing after clarification request)\n- Same user asking progressively refined versions of the same question\n- These indicate where the system's natural language understanding needs improvement\n\n## Metrics to Compute\n- Question diversity index: how varied are the topics?\n- Self-service ratio: % of queries that succeed without clarification\n- Complexity drift: are queries getting more complex over time?\n\n## Interpretation Guidelines\n- High clarification rate (>15%) → Natural language understanding gaps, needs domain vocabulary skills\n- High block rate from a single role → Permissions may be misconfigured OR that role is testing limits\n- Low rows returned consistently → Users may be over-filtering; suggest simpler queries or better schema docs",
+  "source": {
+    "book": "Data-Driven: Creating a Data Culture",
+    "author": "Hilary Mason & DJ Patil",
+    "chapter": "Chapter 3 - Understanding Your Users",
+    "pages": "87-112"
+  },
+  "tags": ["analytics", "patterns", "behavior", "clustering", "logs"],
+  "version": 1,
+  "active": true
+}

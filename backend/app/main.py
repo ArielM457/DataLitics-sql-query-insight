@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.models.response import HealthResponse
-from app.routers import admin_mgmt, audit, onboarding, query, skills, users
+from app.routers import admin_mgmt, analytics, audit, onboarding, query, skills, users
 
 # Logging configuration
 logging.basicConfig(
@@ -26,9 +26,18 @@ app = FastAPI(
 )
 
 # CORS middleware
+_cors_origins = [settings.FRONTEND_URL]
+if settings.ENVIRONMENT == "development":
+    _cors_origins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -66,6 +75,7 @@ async def health_check():
 app.include_router(query.router, prefix="/query", tags=["Query"])
 app.include_router(onboarding.router, prefix="/onboarding", tags=["Onboarding"])
 app.include_router(audit.router, prefix="/audit", tags=["Audit"])
+app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(skills.router, tags=["Skills"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(admin_mgmt.router, prefix="/admin", tags=["Admin"])

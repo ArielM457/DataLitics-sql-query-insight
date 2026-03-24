@@ -1,0 +1,17 @@
+{
+  "id": "analytics_002",
+  "title": "Skills Gap Analysis for AI Agents",
+  "description": "Framework for identifying which SQL, visualization, and domain skills are missing based on failure patterns",
+  "agent": "agent_analytics",
+  "category": "skill_management",
+  "content": "# Skills Gap Analysis for AI Agents\n\n## Goal\nIdentify concrete gaps in the agent's skill inventory by correlating failure types with missing capabilities.\n\n## Failure-to-Gap Mapping\n\n### SQL Generation Failures\n| Failure Pattern | Likely Missing Skill |\n|---|---|\n| Errors on date/time calculations | Time series queries, date arithmetic |\n| Failures on multi-table questions | Complex JOIN patterns, implicit joins |\n| Max-attempts reached on aggregations | Window functions, GROUP BY techniques |\n| Risk=high on valid business queries | Context-aware risk calibration |\n\n### Blocked Queries (context_filter)\n| Block Pattern | Likely Missing Skill |\n|---|---|\n| User asks for column they can access | Schema visibility improvement |\n| Aggregate queries blocked as risky | Aggregation safety patterns |\n| Cross-table queries blocked | Role-aware multi-table access patterns |\n\n### Clarification Loops\n| Clarification Pattern | Likely Missing Skill |\n|---|---|\n| Ambiguous time periods | Temporal intent detection |\n| Unclear metric names | Domain vocabulary mapping |\n| Cohort/segment confusion | Cohort analysis detection |\n\n### Execution Errors\n| Error Pattern | Likely Missing Skill |\n|---|---|\n| Timeout on large result sets | Data size management, TOP clauses |\n| Circuit breaker triggers | Query optimization, index awareness |\n| Empty results on valid questions | Null handling, outer join patterns |\n\n## Gap Priority Scoring\nScore each gap on:\n1. **Frequency**: How many failures map to this gap? (1-5)\n2. **Impact**: How much does this gap hurt user experience? (1-5)\n3. **Fixability**: How well can a skill document address this? (1-5)\n\nPriority = Frequency × Impact × Fixability\n\n## Recommended Skill Structure\nA good gap-filling skill should:\n- Include 3-5 concrete SQL examples with the correct patterns\n- Explain when NOT to use the pattern (anti-patterns)\n- Reference a credible source (book, RFC, Azure docs)\n- Be tagged with the exact failure mode it addresses",
+  "source": {
+    "book": "The Phoenix Project",
+    "author": "Gene Kim, Kevin Behr, George Spafford",
+    "chapter": "Part III - The Third Way",
+    "pages": "342-367"
+  },
+  "tags": ["analytics", "skill-gap", "recommendations", "failure-analysis", "improvement"],
+  "version": 1,
+  "active": true
+}

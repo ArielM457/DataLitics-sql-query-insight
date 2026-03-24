@@ -1,0 +1,17 @@
+{
+  "id": "analytics_003",
+  "title": "Platform Health Score Framework",
+  "description": "Methodology for computing a 0-100 health score that reflects system reliability, security posture, and user satisfaction",
+  "agent": "agent_analytics",
+  "category": "health_monitoring",
+  "content": "# Platform Health Score Framework\n\n## Components (100 points total)\n\n### 1. Success Rate (40 points)\n- 40 pts: ≥ 90% success rate\n- 30 pts: 80-89%\n- 20 pts: 65-79%\n- 10 pts: 50-64%\n- 0 pts: < 50%\n\n**Deductions:**\n- -5 pts if clarification rate > 20% (ambiguous queries indicate NLU weakness)\n- -5 pts if error rate > 10% (technical failures, not intentional blocks)\n\n### 2. Security Posture (30 points)\n- 30 pts: 0 prompt injection attempts\n- 20 pts: Attempts detected and all blocked\n- 10 pts: Attempts detected, partial blocks\n- 0 pts: Any successful injection or context bypass\n\n**Bonuses:**\n- +5 pts if circuit breaker never triggered (stable DB connection)\n- +5 pts if all high-risk queries were blocked or escalated correctly\n\n### 3. Skill Coverage (20 points)\nCompute coverage as: (query_types_handled_successfully / total_distinct_query_types)\n- 20 pts: ≥ 85% coverage\n- 15 pts: 70-84%\n- 10 pts: 50-69%\n- 5 pts: 30-49%\n- 0 pts: < 30%\n\n### 4. Performance (10 points)\n- 10 pts: P95 latency < 3,000ms\n- 7 pts: P95 3,000-6,000ms\n- 4 pts: P95 6,000-12,000ms\n- 0 pts: P95 > 12,000ms\n\n## Health Labels\n- 85-100: **excellent** — System performing optimally\n- 70-84: **good** — Minor improvements recommended\n- 50-69: **needs_attention** — Significant gaps identified, act within 2 weeks\n- 0-49: **critical** — Immediate action required\n\n## Trend Analysis\nCompare scores across time windows:\n- Improving (+5 or more vs prior period) → Good trajectory\n- Stable (±4) → Steady state, focus on new features\n- Declining (-5 or more) → Investigate root cause, likely a new query type or user behavior change\n\n## Reporting Cadence\n- Daily quick summary (no AI): track raw numbers\n- Weekly full AI report: narrative analysis + skill recommendations\n- Monthly trend report: compare 4-week windows, update skill inventory",
+  "source": {
+    "book": "Site Reliability Engineering",
+    "author": "Google SRE Team",
+    "chapter": "Chapter 4 - Service Level Objectives",
+    "pages": "57-78"
+  },
+  "tags": ["analytics", "health-score", "SLO", "monitoring", "reliability"],
+  "version": 1,
+  "active": true
+}

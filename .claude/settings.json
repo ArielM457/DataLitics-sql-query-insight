@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 8808 /F)",
+      "Bash(taskkill /PID 12904 /F)",
+      "Bash(taskkill /PID 16752 /F)",
+      "Bash(cmd //c \"taskkill /PID 8808 /F & taskkill /PID 12904 /F & taskkill /PID 16752 /F\")",
+      "Bash(curl -s -I http://localhost:8000/health)",
+      "Bash(cmd //c \"taskkill /PID 12904 /F & taskkill /PID 8808 /F & taskkill /PID 17752 /F & taskkill /PID 16752 /F\")",
+      "Bash(cmd //c \"for /f \"\"tokens=5\"\" %a in \\(''netstat -ano ^| findstr :8000 ^| findstr LISTENING''\\) do taskkill /PID %a /F\")",
+      "Read(//s/Documents/DataLitics-sql-query-insight/**)",
+      "Bash(xargs -I{} cmd //c \"taskkill /PID {} /F\")",
+      "Bash(cmd //c \"taskkill /F /IM uvicorn.exe /T\")",
+      "Bash(cmd //c \"taskkill /F /IM python.exe /T\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"node\")",
+      "Bash(cmd //c \"taskkill /F /IM node.exe /T\")",
+      "Bash(az --version)"
+    ],
+    "additionalDirectories": [
+      "s:\\Downloads"
+    ]
+  }
+}
