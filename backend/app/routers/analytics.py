@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from app.agents.agent_analytics import AnalyticsAgent
 from app.core.audit_store import audit_store
 from app.core.auth import verify_firebase_token
+from app.core.conversation_store import conversation_store
 
 logger = logging.getLogger("dataagent.routers.analytics")
 
@@ -206,3 +207,62 @@ async def skills_chat(
     except Exception as e:
         logger.error("Skills chat failed: %s", str(e), exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to process skills chat question") from e
+
+
+# ─── Conversation history ──────────────────────────────────────────────────────
+
+class SaveConversationRequest(BaseModel):
+    type: str           # "analytics_chat" | "skills_chat"
+    messages: list[dict]
+    preview: str
+    conv_id: str | None = None   # omit to create, pass to update
+
+
+@router.post("/conversations", status_code=201)
+async def save_conversation(
+    body: SaveConversationRequest,
+    authorization: str = Header(...),
+):
+    """Create or update a chat conversation (upsert). Pass conv_id to update."""
+    token = authorization.replace("Bearer ", "")
+    user_context = await verify_firebase_token(token)
+    tenant_id = user_context["tenant_id"]
+
+    if body.type not in ("analytics_chat", "skills_chat"):
+        raise HTTPException(status_code=400, detail="type must be analytics_chat or skills_chat")
+
+    entry = conversation_store.save(
+        tenant_id=tenant_id,
+        conv_type=body.type,
+        messages=body.messages,
+        preview=body.preview,
+        conv_id=body.conv_id,
+    )
+    return entry
+
+
+@router.get("/conversations")
+async def list_conversations(
+    authorization: str = Header(...),
+    limit: int = Query(30, ge=1, le=100),
+):
+    """List recent conversations for the tenant (metadata only, no messages)."""
+    token = authorization.replace("Bearer ", "")
+    user_context = await verify_firebase_token(token)
+    tenant_id = user_context["tenant_id"]
+    return {"conversations": conversation_store.get_recent(tenant_id=tenant_id, limit=limit)}
+
+
+@router.get("/conversations/{conv_id}")
+async def get_conversation(
+    conv_id: str,
+    authorization: str = Header(...),
+):
+    """Get a full conversation including all messages."""
+    token = authorization.replace("Bearer ", "")
+    user_context = await verify_firebase_token(token)
+    tenant_id = user_context["tenant_id"]
+    conv = conversation_store.get_by_id(tenant_id=tenant_id, conv_id=conv_id)
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conv

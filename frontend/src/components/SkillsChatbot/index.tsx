@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { skillsChat } from "@/lib/api";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { skillsChat, saveConversation, getConversation } from "@/lib/api";
 import { renderMarkdown } from "@/lib/renderMarkdown";
-import { Sparkles, Send, Loader2, User, AlertCircle, Bot } from "lucide-react";
+import { Sparkles, Send, Loader2, User, AlertCircle, Bot, Plus } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
+
+const WELCOME: Message = {
+  role: "assistant",
+  content:
+    "Hola, soy el asistente de skills. Puedo decirte qué habilidades tiene el sistema actualmente, qué le falta según los logs de fallo, y qué nuevas skills agregaría para mejorar las tasas de éxito. ¿Qué quieres saber?",
+};
 
 const SUGGESTIONS = [
   "¿Qué skills existen actualmente?",
@@ -17,32 +24,73 @@ const SUGGESTIONS = [
   "¿Qué nuevas skills recomiendas agregar?",
 ];
 
-export default function SkillsChatbot() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content:
-        "Hola, soy el asistente de skills. Puedo decirte qué habilidades tiene el sistema actualmente, qué le falta según los logs de fallo, y qué nuevas skills agregaría para mejorar las tasas de éxito. ¿Qué quieres saber?",
-    },
-  ]);
+interface Props {
+  onConversationSaved?: () => void;
+}
+
+export default function SkillsChatbot({ onConversationSaved }: Props) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [messages, setMessages] = useState<Message[]>([WELCOME]);
+  const [activeConvId, setActiveConvId] = useState<string | undefined>();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const convId = searchParams.get("conv");
+  useEffect(() => {
+    if (!convId) return;
+    setRestoring(true);
+    getConversation(convId)
+      .then((conv) => {
+        if (conv.type === "skills_chat") {
+          setMessages(conv.messages as Message[]);
+          setActiveConvId(conv.id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRestoring(false));
+  }, [convId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const hasUserMessages = messages.some((m) => m.role === "user");
+
+  const autoSave = useCallback(async (msgs: Message[], currentConvId: string | undefined) => {
+    const preview = msgs.find((m) => m.role === "user")?.content ?? "";
+    try {
+      const saved = await saveConversation("skills_chat", msgs, preview, currentConvId);
+      setActiveConvId(saved.id);
+      onConversationSaved?.();
+    } catch {
+      // non-blocking
+    }
+  }, [onConversationSaved]);
+
+  const handleNewConversation = useCallback(() => {
+    setMessages([WELCOME]);
+    setActiveConvId(undefined);
+    setInput("");
+    setError(null);
+    router.replace("/skills");
+  }, [router]);
+
   const send = async (question: string) => {
     if (!question.trim() || loading) return;
     setInput("");
     setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    const next: Message[] = [...messages, { role: "user", content: question }];
+    setMessages(next);
     setLoading(true);
     try {
       const data = await skillsChat(question, 200);
-      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+      const withReply: Message[] = [...next, { role: "assistant", content: data.answer }];
+      setMessages(withReply);
+      await autoSave(withReply, activeConvId);
     } catch {
       setError("No se pudo obtener respuesta. Verifica la conexión con el backend.");
     } finally {
@@ -53,16 +101,33 @@ export default function SkillsChatbot() {
   return (
     <div className="border border-brand-light rounded-2xl bg-white shadow-card overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-brand-light bg-brand-light/20">
-        <Sparkles size={18} className="text-brand-dark" />
-        <div>
-          <h2 className="text-lg font-semibold text-brand-deepest leading-tight">Asistente de Skills</h2>
-          <p className="text-xs text-brand-dark/70">Inventario actual, gaps detectados y recomendaciones</p>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-brand-light bg-brand-light/20">
+        <div className="flex items-center gap-2">
+          <Sparkles size={18} className="text-brand-dark" />
+          <div>
+            <h2 className="text-lg font-semibold text-brand-deepest leading-tight">Asistente de Skills</h2>
+            <p className="text-xs text-brand-dark/70">Inventario actual, gaps detectados y recomendaciones</p>
+          </div>
         </div>
+        {hasUserMessages && (
+          <button
+            onClick={handleNewConversation}
+            className="flex items-center gap-1.5 text-xs border border-brand-light px-3 py-1.5 rounded-lg text-brand-dark hover:bg-brand-light/40 transition-all"
+          >
+            <Plus size={12} />
+            Nueva consulta
+          </button>
+        )}
       </div>
 
-      {/* Suggestions (only when just the welcome message) */}
-      {messages.length === 1 && (
+      {restoring && (
+        <div className="flex items-center gap-2 px-5 py-3 text-sm text-brand-dark bg-brand-light/20">
+          <Loader2 size={14} className="animate-spin" />
+          Restaurando conversación...
+        </div>
+      )}
+
+      {messages.length === 1 && !restoring && (
         <div className="px-5 pt-4 flex flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
             <button
@@ -120,7 +185,6 @@ export default function SkillsChatbot() {
         </div>
       )}
 
-      {/* Input */}
       <div className="px-5 pb-4 pt-2 border-t border-brand-light/50 flex gap-2 items-end">
         <textarea
           rows={1}

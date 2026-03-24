@@ -24,8 +24,10 @@ async def lifespan(app: FastAPI):
     """Reload persistent stores after Firebase is confirmed initialized."""
     from app.core.audit_store import audit_store
     from app.core.user_store import user_store
+    from app.core.conversation_store import conversation_store
     audit_store._load_from_firestore()
     user_store.reload()
+    conversation_store.reload()
     logger.info("Persistent stores reloaded from Firestore")
     yield
 

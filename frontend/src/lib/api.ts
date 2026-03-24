@@ -225,6 +225,43 @@ export async function skillsChat(question: string, limit = 100) {
   return response.data as { answer: string; tenant_id: string };
 }
 
+export interface ConversationMeta {
+  id: string;
+  type: "analytics_chat" | "skills_chat";
+  preview: string;
+  created_at: string;
+  message_count: number;
+}
+
+export interface ConversationFull extends ConversationMeta {
+  messages: { role: "user" | "assistant"; content: string }[];
+}
+
+export async function saveConversation(
+  type: "analytics_chat" | "skills_chat",
+  messages: { role: string; content: string }[],
+  preview: string,
+  convId?: string,
+) {
+  const response = await api.post("/analytics/conversations", {
+    type,
+    messages,
+    preview,
+    conv_id: convId ?? null,
+  });
+  return response.data as ConversationMeta;
+}
+
+export async function getRecentConversations() {
+  const response = await api.get("/analytics/conversations");
+  return (response.data as { conversations: ConversationMeta[] }).conversations;
+}
+
+export async function getConversation(convId: string) {
+  const response = await api.get(`/analytics/conversations/${convId}`);
+  return response.data as ConversationFull;
+}
+
 export async function listSkills(agent?: string) {
   const params = agent ? { agent } : {};
   const response = await api.get("/skills", { params });
