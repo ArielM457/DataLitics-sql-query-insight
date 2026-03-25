@@ -9,7 +9,7 @@ import {
   logQueryRequest,
   type AgentResponse,
 } from "@/lib/chatHistory";
-import { Send, Bot, User, Code2, Table2, Lightbulb, ChevronDown, ChevronUp, BarChart2 } from "lucide-react";
+import { Send, Bot, User, Code2, Table2, Lightbulb, ChevronDown, ChevronUp, BarChart2, Download, Copy, Check  } from "lucide-react";
 import ChartDisplay from "@/components/ChartDisplay";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -70,6 +70,52 @@ function DataTable({ data }: { data: Record<string, unknown>[] }) {
   );
 }
 
+// ─── Export Helpers ────────────────────────────────────────────────────────────
+
+function downloadCSV(data: Record<string, unknown>[], filename = "datos") {
+  if (!data.length) return;
+  const columns = Object.keys(data[0]);
+  const header = columns.join(",");
+  const rows = data.map((row) =>
+    columns
+      .map((col) => {
+        const val = String(row[col] ?? "");
+        return val.includes(",") || val.includes('"') || val.includes("\n")
+          ? `"${val.replace(/"/g, '""')}"`
+          : val;
+      })
+      .join(",")
+  );
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-brand-light/50 text-brand-mid hover:bg-brand-light hover:text-brand-dark transition-all"
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+      {copied ? "Copiado" : label}
+    </button>
+  );
+}
+
 // Keys que se manejan con componentes dedicados, no como texto plano
 const SKIP_INSIGHT_KEYS = new Set(["chart_type", "chart_config", "chart_justification"]);
 
@@ -95,17 +141,20 @@ function AssistantMessage({ msg }: { msg: Message }) {
 
       {msg.content && <p className="text-sm text-brand-deepest leading-relaxed">{msg.content}</p>}
 
-      {/* SQL — colapsable, transparencia para el hackathon */}
+      {/* SQL — colapsable con botón copiar */}
       {r?.sql && (
         <div>
-          <button
-            onClick={() => setSqlOpen((o) => !o)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-brand-mid uppercase tracking-wide hover:text-brand-dark transition-colors"
-          >
-            <Code2 size={12} />
-            <span>Consulta técnica</span>
-            {sqlOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSqlOpen((o) => !o)}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-mid uppercase tracking-wide hover:text-brand-dark transition-colors"
+            >
+              <Code2 size={12} />
+              <span>Consulta técnica</span>
+              {sqlOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+            {sqlOpen && <CopyButton text={r.sql} label="Copiar SQL" />}
+          </div>
           {sqlOpen && (
             <pre className="mt-1.5 bg-brand-deepest text-green-400 text-xs rounded-xl p-3 overflow-x-auto whitespace-pre-wrap leading-relaxed">
               {r.sql}
@@ -117,11 +166,20 @@ function AssistantMessage({ msg }: { msg: Message }) {
       {/* Tabla de datos */}
       {r?.data && r.data.length > 0 && (
         <div>
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Table2 size={12} className="text-brand-mid" />
-            <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">
-              Resultados ({r.data.length} filas)
-            </p>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Table2 size={12} className="text-brand-mid" />
+              <p className="text-xs font-semibold text-brand-mid uppercase tracking-wide">
+                Resultados ({r.data.length} filas)
+              </p>
+            </div>
+            <button
+              onClick={() => downloadCSV(r.data!)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium bg-brand-light/50 text-brand-mid hover:bg-brand-light hover:text-brand-dark transition-all"
+            >
+              <Download size={11} />
+              CSV
+            </button>
           </div>
           <DataTable data={r.data} />
         </div>

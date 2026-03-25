@@ -26,9 +26,19 @@ _COLUMN_PATTERN = re.compile(
 )
 
 
+def _strip_sql_comments(sql: str) -> str:
+    """Remove SQL comments (single-line -- and multi-line /* */) before parsing."""
+    # Remove multi-line comments /* ... */
+    sql = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
+    # Remove single-line comments -- ...
+    sql = re.sub(r"--[^\n]*", " ", sql)
+    return sql
+
+
 def _extract_tables(sql: str) -> list[str]:
     """Extract table names referenced in the SQL query."""
-    matches = _TABLE_PATTERN.findall(sql)
+    clean_sql = _strip_sql_comments(sql)
+    matches = _TABLE_PATTERN.findall(clean_sql)
     tables = set()
     for match_groups in matches:
         for table in match_groups:
@@ -39,6 +49,7 @@ def _extract_tables(sql: str) -> list[str]:
 
 def _extract_columns(sql: str) -> list[str]:
     """Extract column names from the SELECT clause."""
+    sql = _strip_sql_comments(sql)
     match = _COLUMN_PATTERN.search(sql)
     if not match:
         return []

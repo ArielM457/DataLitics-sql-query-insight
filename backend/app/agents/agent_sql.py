@@ -52,10 +52,11 @@ STRICT RULES:
 1. ONLY generate SELECT statements — NEVER use DELETE, UPDATE, DROP, INSERT, CREATE, TRUNCATE, ALTER, EXEC
 2. Always include a TOP clause to limit results (default TOP 1000 unless specified)
 3. Use proper SQL Server syntax (T-SQL)
-4. Reference ONLY tables and columns that exist in the provided schema
+4. Reference ONLY tables and columns that exist in the provided DATABASE SCHEMA section below — NEVER invent or assume table names that are not listed. If the user asks about an entity (e.g. "productos"), find the correct table from the schema that contains that data (e.g. a sales or inventory table with product columns).
 5. NEVER access columns that are listed as restricted for the user's role
 6. Add brief SQL comments explaining each main section of the query
 7. Use meaningful table aliases
+8. CRITICAL: If a table name is NOT in the schema, DO NOT use it. Map the user's intent to existing tables only.
 
 Your output MUST be a JSON object:
 {
@@ -351,10 +352,10 @@ Generate the SQL query as a JSON object with "sql" and "explanation" fields.
         return {
             "blocked": True,
             "block_reason": (
-                f"I was unable to generate a valid SQL query after "
-                f"{state.get('attempt', 0)} attempts. "
-                f"Last issue: {last_error}. "
-                f"Could you try rephrasing your question or being more specific?"
+                f"No fue posible generar una consulta SQL válida después de "
+                f"{state.get('attempt', 0)} intentos. "
+                f"Último problema: {last_error}. "
+                f"¿Podrías reformular tu pregunta o ser más específico?"
             ),
             "block_type": "escalation",
         }

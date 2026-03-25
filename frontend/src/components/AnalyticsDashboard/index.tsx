@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from "react";
 import {
-  Chart as ChartJS,
-  ArcElement,
-  BarElement,
-  CategoryScale,
-  LinearScale,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   Tooltip,
+  ResponsiveContainer,
   Legend,
-} from "chart.js";
-import { Doughnut, Bar } from "react-chartjs-2";
+} from "recharts";
 import { getAnalyticsSummary } from "@/lib/api";
 import { BarChart2, Loader2, AlertCircle, RefreshCw } from "lucide-react";
-
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 interface Stats {
   total_queries: number;
@@ -62,6 +62,30 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number; payload?: { fill?: string } }[];
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-brand-deepest text-white px-3 py-2 rounded-lg shadow-lg text-xs">
+      {payload.map((p, i) => (
+        <p key={i} className="flex items-center gap-1.5">
+          <span
+            className="inline-block w-2 h-2 rounded-full"
+            style={{ backgroundColor: p.payload?.fill ?? "#fff" }}
+          />
+          <span className="text-white/70">{p.name}:</span>
+          <span className="font-medium">{p.value}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,61 +126,61 @@ export default function AnalyticsDashboard() {
 
   const s = data.stats;
 
-  // ── Status doughnut
-  const statusLabels = Object.keys(s.status_distribution);
-  const statusValues = Object.values(s.status_distribution);
-  const statusChart = {
-    labels: statusLabels,
-    datasets: [{
-      data: statusValues,
-      backgroundColor: statusLabels.map((l) => STATUS_COLOR[l] ?? "#94a3b8"),
-      borderWidth: 1,
-    }],
-  };
+  // ── Status pie data
+  const statusData = Object.entries(s.status_distribution)
+    .filter(([, v]) => v > 0)
+    .map(([name, value]) => ({
+      name,
+      value,
+      fill: STATUS_COLOR[name] ?? "#94a3b8",
+    }));
 
-  // ── Risk doughnut
-  const riskLabels = Object.keys(s.risk_distribution);
-  const riskValues = Object.values(s.risk_distribution);
-  const riskChart = {
-    labels: riskLabels,
-    datasets: [{
-      data: riskValues,
-      backgroundColor: riskLabels.map((l) => RISK_COLOR[l] ?? "#94a3b8"),
-      borderWidth: 1,
-    }],
-  };
+  // ── Risk pie data
+  const riskData = Object.entries(s.risk_distribution)
+    .filter(([, v]) => v > 0)
+    .map(([name, value]) => ({
+      name,
+      value,
+      fill: RISK_COLOR[name] ?? "#94a3b8",
+    }));
 
-  // ── Block types bar
-  const blockLabels = Object.keys(s.block_type_distribution);
-  const blockValues = Object.values(s.block_type_distribution);
-  const blockChart = {
-    labels: blockLabels.length ? blockLabels : ["(sin bloqueos)"],
-    datasets: [
-      {
-        label: "Bloqueos",
-        data: blockValues.length ? blockValues : [0],
-        backgroundColor: "#dc2626",
-        borderRadius: 6,
-      },
-    ],
-  };
+  // ── Block types bar data
+  const blockData = Object.entries(s.block_type_distribution).map(([name, value]) => ({
+    name,
+    value,
+  }));
 
   const pct = (r: number) => `${(r * 100).toFixed(1)}%`;
   const ms  = (v: number) => v ? `${v.toFixed(0)} ms` : "—";
 
-  const doughnutOpts = {
-    plugins: { legend: { position: "bottom" as const, labels: { font: { size: 11 } } } },
-    cutout: "65%",
-    maintainAspectRatio: true,
-  };
-
-  const barOpts = {
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
-      x: { ticks: { font: { size: 11 } } },
-    },
-    maintainAspectRatio: true,
+  const renderPie = (pieData: { name: string; value: number; fill: string }[]) => {
+    if (pieData.length === 0) {
+      return <p className="text-xs text-brand-dark/60 text-center py-6">Sin datos</p>;
+    }
+    return (
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            innerRadius={45}
+            outerRadius={75}
+            paddingAngle={3}
+            dataKey="value"
+            animationDuration={800}
+          >
+            {pieData.map((entry, i) => (
+              <Cell key={i} fill={entry.fill} stroke="#fff" strokeWidth={2} />
+            ))}
+          </Pie>
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            formatter={(value) => <span className="text-xs text-brand-deepest">{value}</span>}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    );
   };
 
   return (
@@ -196,11 +220,7 @@ export default function AnalyticsDashboard() {
             <p className="text-xs font-semibold text-brand-dark uppercase tracking-wide mb-3">
               Estado de consultas
             </p>
-            {statusValues.every((v) => v === 0) ? (
-              <p className="text-xs text-brand-dark/60 text-center py-6">Sin datos</p>
-            ) : (
-              <Doughnut data={statusChart} options={doughnutOpts} />
-            )}
+            {renderPie(statusData)}
           </div>
 
           {/* Risk */}
@@ -208,11 +228,7 @@ export default function AnalyticsDashboard() {
             <p className="text-xs font-semibold text-brand-dark uppercase tracking-wide mb-3">
               Distribución de riesgo
             </p>
-            {riskValues.every((v) => v === 0) ? (
-              <p className="text-xs text-brand-dark/60 text-center py-6">Sin datos</p>
-            ) : (
-              <Doughnut data={riskChart} options={doughnutOpts} />
-            )}
+            {renderPie(riskData)}
           </div>
 
           {/* Block types */}
@@ -220,7 +236,18 @@ export default function AnalyticsDashboard() {
             <p className="text-xs font-semibold text-brand-dark uppercase tracking-wide mb-3">
               Tipos de bloqueo
             </p>
-            <Bar data={blockChart} options={barOpts} />
+            {blockData.length === 0 ? (
+              <p className="text-xs text-brand-dark/60 text-center py-6">Sin bloqueos</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={blockData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" fill="#dc2626" radius={[4, 4, 0, 0]} animationDuration={800} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
