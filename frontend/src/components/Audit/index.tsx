@@ -39,7 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
   skills_chat: "bg-violet-100 text-violet-700",
 };
 
-const PAGE_SIZE_OPTIONS = [25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 export default function Audit() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -48,7 +48,7 @@ export default function Audit() {
   const [filters, setFilters] = useState<Filters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchLogs = useCallback(async (currentFilters: Filters) => {
     setLoading(true);
@@ -239,7 +239,7 @@ export default function Audit() {
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[480px]">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-brand-light/30">

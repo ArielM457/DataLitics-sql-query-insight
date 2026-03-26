@@ -77,7 +77,8 @@ export default function LandingPage() {
   useEffect(() => {
     if (loading) return;
     if (user) {
-      if (status === "pending") router.replace("/pending");
+      if (role === "platform_admin") router.replace("/platform-dashboard");
+      else if (status === "pending") router.replace("/pending");
       else router.replace("/home");
     }
   }, [user, loading, status, role, router]);

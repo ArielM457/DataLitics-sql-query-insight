@@ -14,6 +14,7 @@ import time
 from fastapi import APIRouter, Header, HTTPException
 from openai import BadRequestError as OpenAIBadRequestError
 
+from app.agents.agent_clarification import ClarificationAgent
 from app.agents.agent_execution import ExecutionAgent
 from app.agents.agent_insights import InsightsAgent
 from app.agents.agent_intention import IntentionAgent
@@ -21,7 +22,7 @@ from app.agents.agent_sql import SQLAgent
 from app.core.audit_store import audit_store
 from app.core.auth import verify_firebase_token
 from app.core.schema_loader import get_restricted_columns, load_tenant_schema
-from app.models.request import QueryRequest
+from app.models.request import ClarifyRequest, QueryRequest
 from app.models.response import QueryResponse
 
 logger = logging.getLogger("dataagent.routers.query")
@@ -29,10 +30,50 @@ logger = logging.getLogger("dataagent.routers.query")
 router = APIRouter()
 
 # Agent instances
+clarification_agent = ClarificationAgent()
 intention_agent = IntentionAgent()
 sql_agent = SQLAgent()
 execution_agent = ExecutionAgent()
 insights_agent = InsightsAgent()
+
+
+@router.post("/clarify")
+async def clarify_query(
+    request: ClarifyRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Extended Mode pre-step: generate clarifying questions for a question.
+
+    Called by the frontend before the main /query pipeline when the user is in
+    Extended Mode. Returns up to 3 targeted questions the user can answer with
+    simple button clicks (Yes/No or choice options).
+
+    Args:
+        request: The clarify request with the user's question.
+        authorization: Bearer token from Firebase Auth.
+
+    Returns:
+        dict: {needs_clarification: bool, questions: list[ClarifyQuestion]}
+    """
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_context = await verify_firebase_token(token)
+        tenant_id = user_context["tenant_id"]
+        user_role = user_context["role"]
+
+        result = await clarification_agent.analyze(
+            question=request.question,
+            tenant_id=tenant_id,
+            user_role=user_role,
+        )
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Clarification failed: %s", str(e), exc_info=True)
+        # Fail gracefully — frontend will proceed without clarification
+        return {"needs_clarification": False, "questions": []}
 
 
 @router.post("", response_model=QueryResponse)
@@ -66,9 +107,17 @@ async def execute_query(
         user_email = user_context.get("email", "")
         uid = user_context.get("uid", "")
 
+        # Build effective question — append clarification context if provided (Extended Mode)
+        effective_question = request.question
+        if request.clarification_context:
+            effective_question = (
+                f"{request.question}\n\n"
+                f"Contexto adicional del usuario: {request.clarification_context}"
+            )
+
         logger.info(
-            "Query pipeline started: tenant=%s, role=%s, question='%s'",
-            tenant_id, user_role, request.question[:80],
+            "Query pipeline started: tenant=%s, role=%s, question='%s', extended_mode=%s",
+            tenant_id, user_role, request.question[:80], bool(request.clarification_context),
         )
 
         # Load schema and restricted columns
@@ -84,7 +133,7 @@ async def execute_query(
         # Step 2: Intention Analysis
         stage_start = time.time()
         intention = await intention_agent.analyze(
-            question=request.question,
+            question=effective_question,
             tenant_id=tenant_id,
             user_role=user_role,
         )
@@ -252,7 +301,7 @@ async def execute_query(
         stage_start = time.time()
         insights = await insights_agent.generate(
             data=exec_result,
-            question=request.question,
+            question=effective_question,
             tenant_id=tenant_id,
         )
         trace["stages"]["insights"] = {

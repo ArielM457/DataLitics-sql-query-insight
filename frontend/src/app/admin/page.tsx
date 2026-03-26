@@ -79,11 +79,7 @@ export default function AdminPage() {
       const code = await createInviteCode(expiryMs);
       setNewCode(code);
       await refresh();
-    } catch {
-      // ignore
-    } finally {
-      setActionLoading(null);
-    }
+    } catch { /* ignore */ } finally { setActionLoading(null); }
   };
 
   const handleCopy = (code: string) => {
@@ -97,11 +93,7 @@ export default function AdminPage() {
     try {
       await approveUserAPI(pendingUser.uid);
       await refresh();
-    } catch {
-      // ignore
-    } finally {
-      setActionLoading(null);
-    }
+    } catch { /* ignore */ } finally { setActionLoading(null); }
   };
 
   const handleReject = async (uid: string) => {
@@ -109,16 +101,11 @@ export default function AdminPage() {
     try {
       await rejectUserAPI(uid);
       await refresh();
-    } catch {
-      // ignore
-    } finally {
-      setActionLoading(null);
-    }
+    } catch { /* ignore */ } finally { setActionLoading(null); }
   };
 
   const isExpired = (code: InviteCode) => Date.now() > code.expires_at * 1000;
   const timeLeft = (expiresAt: number) => {
-    // expiresAt from backend is a Unix timestamp in seconds (Python time.time())
     const diff = expiresAt * 1000 - Date.now();
     if (diff <= 0) return "Expirado";
     const h = Math.floor(diff / 3600000);
@@ -136,195 +123,196 @@ export default function AdminPage() {
 
   return (
     <AdminLayout>
-    <div className="p-8 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-brand-deepest">Panel de administración</h1>
-        <p className="text-brand-dark/60 text-sm mt-1">
-          Gestiona el acceso de tu equipo a DataLitics ·{" "}
-          <span className="font-mono text-brand-dark">{tenantId}</span>
-        </p>
-      </div>
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-brand-deepest">Equipo</h1>
+          <p className="text-brand-dark/60 text-sm mt-1">
+            Gestiona el acceso de tu equipo a DataLitics ·{" "}
+            <span className="font-mono text-brand-dark">{tenantId}</span>
+          </p>
+        </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-brand-light">
-        <TabBtn active={tab === "codes"} onClick={() => setTab("codes")} icon={Key}>
-          Códigos de invitación
-        </TabBtn>
-        <TabBtn active={tab === "users"} onClick={() => setTab("users")} icon={Users}>
-          Solicitudes pendientes
-          {activePending.length > 0 && (
-            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">
-              {activePending.length}
-            </span>
-          )}
-        </TabBtn>
-      </div>
+        {/* Tabs */}
+        <div className="flex border-b border-brand-light">
+          <TabBtn active={tab === "codes"} onClick={() => setTab("codes")} icon={Key}>
+            Códigos de invitación
+          </TabBtn>
+          <TabBtn active={tab === "users"} onClick={() => setTab("users")} icon={Users}>
+            Solicitudes pendientes
+            {activePending.length > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-semibold">
+                {activePending.length}
+              </span>
+            )}
+          </TabBtn>
+        </div>
 
-      {/* ── Tab: Códigos ── */}
-      {tab === "codes" && (
-        <div className="space-y-6">
-          <div className="border border-brand-light rounded-2xl p-5 space-y-4 bg-white shadow-card">
-            <h2 className="font-semibold text-brand-deepest">Generar código de invitación</h2>
-            <p className="text-sm text-brand-dark/60">
-              Comparte este código con un empleado para que pueda solicitar acceso.
-              El código expira automáticamente y solo puede usarse una vez.
-            </p>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <label className="text-sm text-brand-deepest font-medium">Duración:</label>
-              <select
-                value={expiryMs}
-                onChange={(e) => setExpiryMs(Number(e.target.value))}
-                className="border border-brand-light rounded-xl px-3 py-1.5 text-sm text-brand-deepest focus:outline-none focus:ring-2 focus:ring-brand-dark/20 focus:border-brand-dark transition-all"
-              >
-                {EXPIRY_OPTIONS.map((o) => (
-                  <option key={o.ms} value={o.ms}>{o.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={handleGenerate}
-                disabled={actionLoading === "generate"}
-                className="flex items-center gap-1.5 bg-brand-dark text-white px-4 py-1.5 rounded-xl text-sm font-medium hover:bg-brand-deepest disabled:opacity-50 transition-all"
-              >
-                {actionLoading === "generate" ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Key size={14} />
-                )}
-                Generar código
-              </button>
-            </div>
-
-            {newCode && (
-              <div className="bg-brand-light/40 border border-brand-light rounded-2xl p-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-brand-dark font-semibold mb-1">Nuevo código generado</p>
-                  <p className="text-3xl font-bold font-mono tracking-[0.3em] text-brand-deepest">
-                    {newCode.code}
-                  </p>
-                  <p className="text-xs text-brand-mid mt-1 flex items-center gap-1">
-                    <Clock size={11} />
-                    Expira en: {timeLeft(newCode.expires_at)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleCopy(newCode.code)}
-                  className="flex items-center gap-1.5 border border-brand-mid text-brand-dark px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-light transition-all shrink-0"
+        {/* ── Tab: Códigos ── */}
+        {tab === "codes" && (
+          <div className="space-y-6">
+            <div className="border border-brand-light rounded-2xl p-5 space-y-4 bg-white shadow-card">
+              <h2 className="font-semibold text-brand-deepest">Generar código de invitación</h2>
+              <p className="text-sm text-brand-dark/60">
+                Comparte este código con un empleado para que pueda solicitar acceso.
+                El código expira automáticamente y solo puede usarse una vez.
+              </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="text-sm text-brand-deepest font-medium">Duración:</label>
+                <select
+                  value={expiryMs}
+                  onChange={(e) => setExpiryMs(Number(e.target.value))}
+                  className="border border-brand-light rounded-xl px-3 py-1.5 text-sm text-brand-deepest focus:outline-none focus:ring-2 focus:ring-brand-dark/20 focus:border-brand-dark transition-all"
                 >
-                  {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                  {copied ? "Copiado" : "Copiar"}
+                  {EXPIRY_OPTIONS.map((o) => (
+                    <option key={o.ms} value={o.ms}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleGenerate}
+                  disabled={actionLoading === "generate"}
+                  className="flex items-center gap-1.5 bg-brand-dark text-white px-4 py-1.5 rounded-xl text-sm font-medium hover:bg-brand-deepest disabled:opacity-50 transition-all"
+                >
+                  {actionLoading === "generate" ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Key size={14} />
+                  )}
+                  Generar código
                 </button>
               </div>
-            )}
-          </div>
-
-          {/* Lista de códigos */}
-          <div className="border border-brand-light rounded-2xl overflow-hidden bg-white shadow-card">
-            <div className="px-5 py-3 border-b border-brand-light bg-brand-light/20">
-              <h2 className="font-semibold text-brand-deepest text-sm">Códigos generados</h2>
+              {newCode && (
+                <div className="bg-brand-light/40 border border-brand-light rounded-2xl p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-brand-dark font-semibold mb-1">Nuevo código generado</p>
+                    <p className="text-3xl font-bold font-mono tracking-[0.3em] text-brand-deepest">
+                      {newCode.code}
+                    </p>
+                    <p className="text-xs text-brand-mid mt-1 flex items-center gap-1">
+                      <Clock size={11} />
+                      Expira en: {timeLeft(newCode.expires_at)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCopy(newCode.code)}
+                    className="flex items-center gap-1.5 border border-brand-mid text-brand-dark px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-light transition-all shrink-0"
+                  >
+                    {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                    {copied ? "Copiado" : "Copiar"}
+                  </button>
+                </div>
+              )}
             </div>
-            {codes.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10 text-brand-mid">
-                <Key size={24} />
-                <p className="text-sm">No hay códigos generados aún.</p>
+
+            <div className="border border-brand-light rounded-2xl overflow-hidden bg-white shadow-card">
+              <div className="px-5 py-3 border-b border-brand-light bg-brand-light/20">
+                <h2 className="font-semibold text-brand-deepest text-sm">Códigos generados</h2>
+              </div>
+              {codes.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-10 text-brand-mid">
+                  <Key size={24} />
+                  <p className="text-sm">No hay códigos generados aún.</p>
+                </div>
+              ) : (
+                <div className="overflow-auto max-h-[400px]">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-brand-light bg-brand-light/10 sticky top-0">
+                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Código</th>
+                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Estado</th>
+                        <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Tiempo restante</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {codes.map((c) => (
+                        <tr key={c.code} className="border-t border-brand-light/50 hover:bg-brand-light/20 transition-colors">
+                          <td className="px-5 py-3 font-mono font-bold tracking-widest text-brand-deepest">{c.code}</td>
+                          <td className="px-5 py-3">
+                            {c.used ? (
+                              <Badge color="gray">Usado</Badge>
+                            ) : isExpired(c) ? (
+                              <Badge color="red">Expirado</Badge>
+                            ) : (
+                              <Badge color="green">Activo</Badge>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-brand-mid">{timeLeft(c.expires_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Tab: Solicitudes ── */}
+        {tab === "users" && (
+          <div className="border border-brand-light rounded-2xl overflow-hidden bg-white shadow-card">
+            {pending.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-14 text-brand-mid">
+                <Users size={28} />
+                <p className="text-sm">No hay solicitudes pendientes.</p>
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-brand-light bg-brand-light/10">
-                    <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Código</th>
-                    <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Estado</th>
-                    <th className="px-5 py-2.5 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Tiempo restante</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {codes.map((c) => (
-                    <tr key={c.code} className="border-t border-brand-light/50 hover:bg-brand-light/20 transition-colors">
-                      <td className="px-5 py-3 font-mono font-bold tracking-widest text-brand-deepest">{c.code}</td>
-                      <td className="px-5 py-3">
-                        {c.used ? (
-                          <Badge color="gray">Usado</Badge>
-                        ) : isExpired(c) ? (
-                          <Badge color="red">Expirado</Badge>
-                        ) : (
-                          <Badge color="green">Activo</Badge>
-                        )}
-                      </td>
-                      <td className="px-5 py-3 text-brand-mid">{timeLeft(c.expires_at)}</td>
+              <div className="overflow-auto max-h-[400px]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-brand-light bg-brand-light/20 sticky top-0">
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Usuario</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Empresa</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Estado</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {pending.map((u) => (
+                      <tr key={u.uid} className="border-t border-brand-light/50 hover:bg-brand-light/20 transition-colors">
+                        <td className="px-5 py-4">
+                          <p className="font-semibold text-brand-deepest">{u.name}</p>
+                          <p className="text-brand-mid text-xs mt-0.5">{u.email}</p>
+                        </td>
+                        <td className="px-5 py-4 text-brand-dark/70">{u.company_name}</td>
+                        <td className="px-5 py-4">
+                          {u.status === "pending" && <Badge color="amber">Pendiente</Badge>}
+                          {u.status === "approved" && <Badge color="green">Aprobado</Badge>}
+                          {u.status === "rejected" && <Badge color="red">Rechazado</Badge>}
+                        </td>
+                        <td className="px-5 py-4">
+                          {u.status === "pending" && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleApprove(u)}
+                                disabled={actionLoading === u.uid}
+                                className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                              >
+                                {actionLoading === u.uid ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <UserCheck size={12} />
+                                )}
+                                Aprobar
+                              </button>
+                              <button
+                                onClick={() => handleReject(u.uid)}
+                                disabled={actionLoading === u.uid}
+                                className="flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition-colors"
+                              >
+                                <UserX size={12} />
+                                Rechazar
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* ── Tab: Solicitudes ── */}
-      {tab === "users" && (
-        <div className="border border-brand-light rounded-2xl overflow-hidden bg-white shadow-card">
-          {pending.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-14 text-brand-mid">
-              <Users size={28} />
-              <p className="text-sm">No hay solicitudes pendientes.</p>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-brand-light bg-brand-light/20">
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Usuario</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Empresa</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Estado</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-brand-dark uppercase tracking-wide">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((u) => (
-                  <tr key={u.uid} className="border-t border-brand-light/50 hover:bg-brand-light/20 transition-colors">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-brand-deepest">{u.name}</p>
-                      <p className="text-brand-mid text-xs mt-0.5">{u.email}</p>
-                    </td>
-                    <td className="px-5 py-4 text-brand-dark/70">{u.company_name}</td>
-                    <td className="px-5 py-4">
-                      {u.status === "pending" && <Badge color="amber">Pendiente</Badge>}
-                      {u.status === "approved" && <Badge color="green">Aprobado</Badge>}
-                      {u.status === "rejected" && <Badge color="red">Rechazado</Badge>}
-                    </td>
-                    <td className="px-5 py-4">
-                      {u.status === "pending" && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleApprove(u)}
-                            disabled={actionLoading === u.uid}
-                            className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
-                          >
-                            {actionLoading === u.uid ? (
-                              <Loader2 size={12} className="animate-spin" />
-                            ) : (
-                              <UserCheck size={12} />
-                            )}
-                            Aprobar
-                          </button>
-                          <button
-                            onClick={() => handleReject(u.uid)}
-                            disabled={actionLoading === u.uid}
-                            className="flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition-colors"
-                          >
-                            <UserX size={12} />
-                            Rechazar
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </AdminLayout>
   );
 }

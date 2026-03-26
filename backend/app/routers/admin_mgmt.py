@@ -16,6 +16,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from app.core.auth import set_user_claims, verify_firebase_token
+from app.core.schema_loader import load_all_tenant_tables, load_allowed_tables_file, save_allowed_tables_file
 from app.core.user_store import user_store
 
 logger = logging.getLogger("dataagent.routers.admin_mgmt")
@@ -27,9 +28,102 @@ class InviteCodeRequest(BaseModel):
     expires_in_ms: int = 3_600_000   # default 1 hour
 
 
+class UpdateAllowedTablesRequest(BaseModel):
+    allowed_tables: list[str]
+
+
 def _require_admin(user_context: dict) -> None:
     if user_context.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin role required")
+
+
+# ─── GET /admin/allowed-tables ───────────────────────────────────────────────
+
+@router.get("/allowed-tables")
+async def get_allowed_tables(
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Return the current allowed-tables whitelist and the full table list for the tenant.
+
+    Returns both lists so the admin UI can render checkboxes:
+    - all_tables: every table in the schema (from dab-config.json)
+    - allowed_tables: currently whitelisted tables (null = all allowed)
+    """
+    token = authorization.replace("Bearer ", "")
+    user_context = await verify_firebase_token(token)
+    _require_admin(user_context)
+
+    tenant_id = user_context["tenant_id"]
+    all_tables = load_all_tenant_tables(tenant_id)
+    saved = load_allowed_tables_file(tenant_id)
+
+    # If no whitelist saved yet, treat all tables as allowed
+    allowed = saved if saved is not None else all_tables
+
+    return {
+        "tenant_id": tenant_id,
+        "all_tables": all_tables,
+        "allowed_tables": allowed,
+        "whitelist_configured": saved is not None,
+    }
+
+
+# ─── PATCH /admin/allowed-tables ─────────────────────────────────────────────
+
+@router.patch("/allowed-tables")
+async def update_allowed_tables(
+    request: UpdateAllowedTablesRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Update the allowed-tables whitelist from the admin panel.
+
+    Args:
+        request: New list of allowed table names.
+        authorization: Bearer token (admin role required).
+    """
+    token = authorization.replace("Bearer ", "")
+    user_context = await verify_firebase_token(token)
+    _require_admin(user_context)
+
+    tenant_id = user_context["tenant_id"]
+    all_tables = load_all_tenant_tables(tenant_id)
+
+    if not all_tables:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No schema found for tenant '{tenant_id}'. Connect a database first.",
+        )
+
+    invalid = [t for t in request.allowed_tables if t not in all_tables]
+    if invalid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown tables: {invalid}",
+        )
+
+    save_allowed_tables_file(tenant_id, request.allowed_tables)
+
+    # Keep Firebase claims in sync
+    await set_user_claims(user_context["uid"], {
+        "role": "admin",
+        "tenant_id": tenant_id,
+        "status": "active",
+        "allowed_tables": request.allowed_tables,
+        "restricted_columns": [],
+    })
+
+    logger.info(
+        "Admin uid=%s updated allowed_tables for tenant=%s: %s",
+        user_context["uid"], tenant_id, request.allowed_tables,
+    )
+
+    return {
+        "status": "ok",
+        "tenant_id": tenant_id,
+        "allowed_tables": request.allowed_tables,
+        "total_allowed": len(request.allowed_tables),
+        "total_available": len(all_tables),
+    }
 
 
 # ─── POST /admin/invite-codes ─────────────────────────────────────────────────

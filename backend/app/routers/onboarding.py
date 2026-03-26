@@ -18,7 +18,8 @@ from pydantic import BaseModel
 from app.core.auth import set_user_claims, verify_firebase_token, verify_firebase_token_light
 from app.core.dab_generator import DabConfigGenerator
 from app.core.schema_inspector import SchemaInspector
-from app.models.request import OnboardingRequest
+from app.core.schema_loader import load_all_tenant_tables, save_allowed_tables_file
+from app.models.request import AllowedTablesRequest, OnboardingRequest
 
 logger = logging.getLogger("dataagent.routers.onboarding")
 
@@ -175,6 +176,84 @@ async def connect_company(
         raise
     except Exception as e:
         logger.error("Onboarding failed: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+
+
+# ─── PATCH /onboarding/allowed-tables ────────────────────────────────────────
+
+@router.patch("/allowed-tables")
+async def set_allowed_tables(
+    request: AllowedTablesRequest,
+    authorization: str = Header(..., description="Bearer {firebase_token}"),
+):
+    """Save the allowed-tables whitelist for a tenant.
+
+    Called after the admin reviews the discovered schema and selects which
+    tables the agent is permitted to query. The selection is persisted to
+    dab/{tenant_id}/allowed_tables.json and the admin's Firebase claims
+    are updated with the new whitelist.
+
+    Args:
+        request: tenant_id + allowed_tables list.
+        authorization: Bearer token (admin role required).
+
+    Returns:
+        dict: Confirmation with saved table count.
+    """
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_context = await verify_firebase_token(token)
+
+        if user_context["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Only admin users can configure allowed tables")
+
+        # Validate that the tenant_id in the request matches the admin's own tenant
+        if user_context["tenant_id"] != request.tenant_id:
+            raise HTTPException(status_code=403, detail="Cannot configure allowed tables for a different tenant")
+
+        # Verify the requested tables actually exist in the schema
+        all_tables = load_all_tenant_tables(request.tenant_id)
+        if not all_tables:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No schema found for tenant '{request.tenant_id}'. Run /onboarding/connect first.",
+            )
+
+        invalid = [t for t in request.allowed_tables if t not in all_tables]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown tables: {invalid}. Valid tables: {all_tables}",
+            )
+
+        save_allowed_tables_file(request.tenant_id, request.allowed_tables)
+
+        # Keep the admin's Firebase claims in sync
+        await set_user_claims(user_context["uid"], {
+            "role": "admin",
+            "tenant_id": request.tenant_id,
+            "status": "active",
+            "allowed_tables": request.allowed_tables,
+            "restricted_columns": [],
+        })
+
+        logger.info(
+            "Allowed tables updated for tenant=%s: %d tables saved",
+            request.tenant_id, len(request.allowed_tables),
+        )
+
+        return {
+            "status": "ok",
+            "tenant_id": request.tenant_id,
+            "allowed_tables": request.allowed_tables,
+            "total_allowed": len(request.allowed_tables),
+            "total_available": len(all_tables),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to save allowed tables: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal server error") from e
 
 

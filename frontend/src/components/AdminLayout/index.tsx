@@ -16,7 +16,7 @@ const ADMIN_NAV = [
   { href: "/audit", label: "Auditoría", icon: ClipboardList },
   { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/admin", label: "Equipo", icon: Users },
-  { href: "/onboarding", label: "Base de datos", icon: Database },
+  { href: "/database", label: "Base de datos", icon: Database },
 ];
 
 export default function AdminLayout({

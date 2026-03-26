@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.models.response import HealthResponse
-from app.routers import admin_mgmt, analytics, audit, onboarding, query, skills, users
+from app.routers import admin_mgmt, analytics, audit, onboarding, platform_admin, query, skills, users
 
 # Logging configuration
 logging.basicConfig(
@@ -95,3 +95,4 @@ app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(skills.router, tags=["Skills"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(admin_mgmt.router, prefix="/admin", tags=["Admin"])
+app.include_router(platform_admin.router, prefix="/platform", tags=["Platform Admin"])

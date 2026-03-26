@@ -267,7 +267,7 @@ export default function ChartDisplay({
   };
 
   return (
-    <div className="mt-1 rounded-xl border border-brand-light bg-white p-4">
+    <div className="mt-1 w-full rounded-xl border border-brand-light bg-white p-4 overflow-hidden">
       {/* Title */}
       {chartConfig.title && (
         <p className="text-sm font-semibold text-brand-deepest mb-3">

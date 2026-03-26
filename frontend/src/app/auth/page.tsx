@@ -28,7 +28,7 @@ const FEATURES = [
 
 export default function AuthPage() {
   const router = useRouter();
-  const { user, loading, status } = useAuth();
+  const { user, loading, status, role } = useAuth();
   const [tab, setTab] = useState<"login" | "register">("login");
   const initialCheckDone = useRef(false);
 
@@ -37,7 +37,8 @@ export default function AuthPage() {
     if (initialCheckDone.current) return;
     initialCheckDone.current = true;
     if (user) {
-      if (status === "pending") router.replace("/pending");
+      if (role === "platform_admin") router.replace("/platform-dashboard");
+      else if (status === "pending") router.replace("/pending");
       else router.replace("/home");
     }
   }, [user, loading, status, router]);

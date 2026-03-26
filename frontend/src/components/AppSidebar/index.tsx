@@ -180,7 +180,7 @@ export default function AppSidebar({
         {role === "admin" && (
           <Link
             href="/security"
-            className={`px-4 py-3 rounded-lg flex items-center gap-3 transition-all hover:translate-x-0.5 mb-2 ${
+            className={`px-4 py-3 rounded-lg flex items-center gap-3 transition-all hover:translate-x-0.5 mb-2 border border-[#9bcde8]/40 bg-[#9bcde8]/5 rounded-xl ${
               isAdminArea
                 ? "bg-[#20566d] text-white"
                 : "text-slate-300 hover:bg-white/5"

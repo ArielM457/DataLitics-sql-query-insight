@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { connectOnboarding, testConnection } from "@/lib/api";
+import { connectOnboarding, setOnboardingAllowedTables, testConnection } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Loader2,
@@ -12,6 +12,8 @@ import {
   ArrowRight,
   Table2,
   Shield,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -40,7 +42,7 @@ interface OnboardingResult {
 }
 
 type TestStatus = "idle" | "testing" | "ok" | "fail";
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
@@ -51,8 +53,10 @@ function buildConnectionString(f: DBFields): string {
 function deriveStep(
   testStatus: TestStatus,
   loading: boolean,
-  result: OnboardingResult | null
+  result: OnboardingResult | null,
+  tablesConfirmed: boolean
 ): Step {
+  if (result && tablesConfirmed) return 4;
   if (result) return 3;
   if (loading || testStatus !== "idle") return 2;
   return 1;
@@ -95,8 +99,12 @@ export default function Onboarding() {
   const [testStatus, setTestStatus] = useState<TestStatus>("idle");
   const [testLatency, setTestLatency] = useState<number | null>(null);
   const [testError, setTestError] = useState("");
+  const [allowedTables, setAllowedTables] = useState<string[]>([]);
+  const [tablesConfirmed, setTablesConfirmed] = useState(false);
+  const [savingTables, setSavingTables] = useState(false);
+  const [saveTablesError, setSaveTablesError] = useState<string | null>(null);
 
-  const currentStep = deriveStep(testStatus, loading, result);
+  const currentStep = deriveStep(testStatus, loading, result, tablesConfirmed);
 
   const companyDisplay = tenantId
     ? tenantId.replace(/_[a-z0-9]{4}$/, "").replace(/_/g, " ")
@@ -148,6 +156,8 @@ export default function Onboarding() {
       });
       setProgress(100);
       setResult(data);
+      // Pre-select all discovered tables (whitelist opt-out model)
+      setAllowedTables(Object.keys(data.schema_summary));
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -159,6 +169,21 @@ export default function Onboarding() {
     }
   };
 
+  const handleConfirmTables = async () => {
+    if (!tenantId || !result) return;
+    setSavingTables(true);
+    setSaveTablesError(null);
+    try {
+      await setOnboardingAllowedTables(tenantId, allowedTables);
+      setTablesConfirmed(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al guardar tablas";
+      setSaveTablesError(msg);
+    } finally {
+      setSavingTables(false);
+    }
+  };
+
   const handleReset = () => {
     setTestStatus("idle");
     setTestError("");
@@ -166,6 +191,9 @@ export default function Onboarding() {
     setError(null);
     setResult(null);
     setProgress(0);
+    setAllowedTables([]);
+    setTablesConfirmed(false);
+    setSaveTablesError(null);
   };
 
   /* ── Render ── */
@@ -222,8 +250,20 @@ export default function Onboarding() {
           />
         )}
 
-        {/* ── Step 3: Confirm ── */}
-        {currentStep === 3 && result && <Step3 result={result} />}
+        {/* ── Step 3: Table selection ── */}
+        {currentStep === 3 && result && (
+          <Step3Tables
+            schemaSummary={result.schema_summary}
+            allowedTables={allowedTables}
+            onChange={setAllowedTables}
+            onConfirm={handleConfirmTables}
+            saving={savingTables}
+            saveError={saveTablesError}
+          />
+        )}
+
+        {/* ── Step 4: Confirm ── */}
+        {currentStep === 4 && result && <Step4 result={result} allowedTables={allowedTables} />}
       </div>
     </div>
   );
@@ -235,9 +275,10 @@ export default function Onboarding() {
 
 function StepperNav({ currentStep }: { currentStep: Step }) {
   const steps: { n: Step; label: string }[] = [
-    { n: 1, label: "Connect" },
-    { n: 2, label: "Test" },
-    { n: 3, label: "Confirm" },
+    { n: 1, label: "Conectar" },
+    { n: 2, label: "Probar" },
+    { n: 3, label: "Tablas" },
+    { n: 4, label: "Confirmar" },
   ];
 
   return (
@@ -668,13 +709,185 @@ function Step2({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STEP 3 — CONFIRM (SUCCESS)
+   STEP 3 — TABLE SELECTION
    ═══════════════════════════════════════════════════════════════════════════ */
 
-function Step3({ result }: { result: OnboardingResult }) {
+interface Step3TablesProps {
+  schemaSummary: OnboardingResult["schema_summary"];
+  allowedTables: string[];
+  onChange: (tables: string[]) => void;
+  onConfirm: () => void;
+  saving: boolean;
+  saveError: string | null;
+}
+
+function Step3Tables({
+  schemaSummary,
+  allowedTables,
+  onChange,
+  onConfirm,
+  saving,
+  saveError,
+}: Step3TablesProps) {
+  const allTables = Object.keys(schemaSummary);
+
+  const toggle = (table: string) => {
+    onChange(
+      allowedTables.includes(table)
+        ? allowedTables.filter((t) => t !== table)
+        : [...allowedTables, table]
+    );
+  };
+
+  const toggleAll = () => {
+    onChange(allowedTables.length === allTables.length ? [] : [...allTables]);
+  };
+
+  const allSelected = allowedTables.length === allTables.length;
+  const noneSelected = allowedTables.length === 0;
+
+  return (
+    <div className="max-w-3xl mx-auto py-4 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col items-center text-center gap-3">
+        <div className="w-14 h-14 rounded-full bg-[#edf5fb] flex items-center justify-center">
+          <Shield size={28} className="text-[#003f54]" />
+        </div>
+        <div>
+          <h3 className="text-xl font-extrabold text-[#003f54] mb-1">
+            Configura el acceso a las tablas
+          </h3>
+          <p className="text-sm text-[#41484c] max-w-lg leading-relaxed">
+            Selecciona qué tablas estarán disponibles para el agente de análisis.
+            Las tablas <span className="font-semibold text-[#003f54]">no seleccionadas</span>{" "}
+            nunca serán accesibles, sin importar lo que se pregunte.
+          </p>
+        </div>
+      </div>
+
+      {/* Table list */}
+      <div className={GLASS} style={GLASS_STYLE}>
+        {/* Header row */}
+        <div className="px-6 py-4 flex items-center justify-between border-b border-[#c0c7cd]/15 rounded-t-xl bg-[#edf5fb]/80">
+          <div className="flex items-center gap-2">
+            <Table2 size={14} className="text-[#003f54]" />
+            <span className="text-[10px] font-bold text-[#003f54] uppercase tracking-widest">
+              {allTables.length} tablas encontradas
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="text-[10px] font-bold text-[#003f54] hover:underline uppercase tracking-wide"
+          >
+            {allSelected ? "Deseleccionar todo" : "Seleccionar todo"}
+          </button>
+        </div>
+
+        {/* Rows */}
+        <div className="divide-y divide-[#c0c7cd]/10 max-h-[380px] overflow-y-auto">
+          {allTables.map((table) => {
+            const info = schemaSummary[table];
+            const isAllowed = allowedTables.includes(table);
+            const hasSensitive = info.sensitive_columns_excluded_for_analyst.length > 0;
+
+            return (
+              <label
+                key={table}
+                className={[
+                  "flex items-center gap-4 px-6 py-4 cursor-pointer transition-colors select-none",
+                  isAllowed ? "hover:bg-[#edf5fb]/40" : "opacity-60 hover:bg-red-50/30",
+                ].join(" ")}
+              >
+                <input
+                  type="checkbox"
+                  checked={isAllowed}
+                  onChange={() => toggle(table)}
+                  className="w-4 h-4 rounded accent-[#003f54] cursor-pointer"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-semibold text-sm text-[#003f54]">
+                      {table}
+                    </span>
+                    {hasSensitive && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
+                        columnas sensibles
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#71787d] mt-0.5">
+                    {info.total_columns} columnas
+                    {hasSensitive && ` · ${info.sensitive_columns_excluded_for_analyst.length} excluidas del analista`}
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  {isAllowed ? (
+                    <ShieldCheck size={16} className="text-emerald-600" />
+                  ) : (
+                    <ShieldOff size={16} className="text-[#c0c7cd]" />
+                  )}
+                </div>
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Summary footer */}
+        <div className="px-6 py-3 border-t border-[#c0c7cd]/15 bg-[#edf5fb]/60 rounded-b-xl flex items-center justify-between">
+          <span className="text-xs text-[#41484c]">
+            <span className="font-bold text-[#003f54]">{allowedTables.length}</span> de{" "}
+            {allTables.length} tablas habilitadas
+          </span>
+          {noneSelected && (
+            <span className="text-xs font-semibold text-red-600">
+              Debes seleccionar al menos una tabla
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Save error */}
+      {saveError && (
+        <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+          <span>{saveError}</span>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={noneSelected || saving}
+          className="flex items-center gap-2 px-10 py-3 rounded-xl bg-[#003f54] text-white text-sm font-bold shadow-lg shadow-[#003f54]/20 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          {saving ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <ShieldCheck size={15} />
+          )}
+          {saving ? "Guardando..." : "Confirmar acceso"}
+          {!saving && <ArrowRight size={15} />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STEP 4 — CONFIRM (SUCCESS)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function Step4({ result, allowedTables }: { result: OnboardingResult; allowedTables: string[] }) {
   const totalSensitive = Object.values(result.schema_summary).reduce(
     (acc, t) => acc + t.sensitive_columns_excluded_for_analyst.length,
     0
+  );
+  const restricted = Object.keys(result.schema_summary).filter(
+    (t) => !allowedTables.includes(t)
   );
 
   return (
@@ -689,11 +902,11 @@ function Step3({ result }: { result: OnboardingResult }) {
           />
         </div>
         <h3 className="text-2xl font-extrabold text-[#003f54] mb-2">
-          ¡Conexión exitosa!
+          ¡Configuración completa!
         </h3>
         <p className="text-[#41484c] text-sm max-w-md leading-relaxed">
-          Hemos mapeado correctamente tu arquitectura de datos. A continuación
-          se presenta un resumen de los hallazgos.
+          El agente de análisis está listo. Solo tendrá acceso a las tablas
+          aprobadas; el resto permanece completamente restringido.
         </p>
         <span className="mt-3 text-xs bg-[#c0e8ff] text-[#001e2b] px-3 py-1 rounded-full font-mono">
           {result.tenant_id}
@@ -701,44 +914,48 @@ function Step3({ result }: { result: OnboardingResult }) {
       </div>
 
       {/* Stats bento */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         <StatCard
-          label="Tablas encontradas"
+          label="Tablas totales"
           value={String(result.tables_found)}
           accent="#003f54"
+        />
+        <StatCard
+          label="Tablas habilitadas"
+          value={String(allowedTables.length)}
+          accent="#059669"
+        />
+        <StatCard
+          label="Tablas restringidas"
+          value={String(restricted.length)}
+          accent="#b45309"
         />
         <StatCard
           label="Columnas excluidas"
           value={String(totalSensitive)}
           accent="#36637c"
         />
-        <StatCard
-          label="Empresa"
-          value={result.company_name}
-          small
-          accent="#223d45"
-        />
       </div>
 
-      {/* Schema table */}
-      {Object.keys(result.schema_summary).length > 0 && (
+      {/* Schema table — only show allowed tables */}
+      {allowedTables.length > 0 && (
         <div className={GLASS} style={GLASS_STYLE}>
           <div className="bg-[#edf5fb]/80 px-6 py-4 flex justify-between items-center border-b border-[#c0c7cd]/15 rounded-t-xl">
             <div className="flex items-center gap-2">
-              <Table2 size={14} className="text-[#003f54]" />
+              <ShieldCheck size={14} className="text-emerald-600" />
               <h4 className="text-[10px] font-bold text-[#003f54] uppercase tracking-widest">
-                Vista previa del esquema
+                Tablas habilitadas para el agente
               </h4>
             </div>
             <span className="text-[10px] text-[#71787d] bg-white px-2 py-1 rounded border border-[#c0c7cd]/30">
-              {Object.keys(result.schema_summary).length} tablas
+              {allowedTables.length} tablas
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[360px]">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="bg-white/50">
-                  {["Tabla", "Columnas", "Columnas sensibles", "Estado"].map(
+                <tr className="bg-white/50 sticky top-0">
+                  {["Tabla", "Columnas", "Columnas sensibles", "Acceso"].map(
                     (h) => (
                       <th
                         key={h}
@@ -751,7 +968,9 @@ function Step3({ result }: { result: OnboardingResult }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#c0c7cd]/10">
-                {Object.entries(result.schema_summary).map(([table, info]) => (
+                {Object.entries(result.schema_summary)
+                  .filter(([table]) => allowedTables.includes(table))
+                  .map(([table, info]) => (
                   <tr
                     key={table}
                     className="hover:bg-[#edf5fb]/40 transition-colors"
@@ -765,23 +984,44 @@ function Step3({ result }: { result: OnboardingResult }) {
                     <td className="px-6 py-4">
                       {info.sensitive_columns_excluded_for_analyst.length > 0 ? (
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
-                          {info.sensitive_columns_excluded_for_analyst.join(
-                            ", "
-                          )}
+                          {info.sensitive_columns_excluded_for_analyst.join(", ")}
                         </span>
                       ) : (
                         <span className="text-[10px] text-[#71787d]">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
-                        Listo
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                        <ShieldCheck size={10} />
+                        Habilitada
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Restricted tables summary */}
+      {restricted.length > 0 && (
+        <div className={GLASS} style={GLASS_STYLE}>
+          <div className="bg-red-50/60 px-6 py-4 flex items-center gap-2 border-b border-[#c0c7cd]/15 rounded-t-xl">
+            <ShieldOff size={14} className="text-red-500" />
+            <h4 className="text-[10px] font-bold text-red-700 uppercase tracking-widest">
+              Tablas restringidas ({restricted.length})
+            </h4>
+          </div>
+          <div className="px-6 py-4 flex flex-wrap gap-2">
+            {restricted.map((t) => (
+              <span
+                key={t}
+                className="font-mono text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full"
+              >
+                {t}
+              </span>
+            ))}
           </div>
         </div>
       )}

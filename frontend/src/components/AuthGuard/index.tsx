@@ -15,6 +15,7 @@ interface AuthGuardProps {
  *
  * Comportamiento:
  *  - Sin sesión → redirige a /
+ *  - platform_admin → redirige a /platform-dashboard (no accede a la app normal)
  *  - Sesión pendiente → redirige a /pending
  *  - analyst intentando ruta de admin → redirige a /home
  *  - Autenticado con rol correcto → renderiza children
@@ -31,6 +32,12 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
       return;
     }
 
+    // Platform admin has its own separate app — redirect out of the main app
+    if (role === "platform_admin") {
+      router.replace("/platform-dashboard");
+      return;
+    }
+
     if (status === "pending") {
       router.replace("/pending");
       return;
@@ -42,7 +49,7 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     }
   }, [user, role, status, loading, requiredRole, router]);
 
-  if (loading || !user || status === "pending") {
+  if (loading || !user || status === "pending" || role === "platform_admin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-400">

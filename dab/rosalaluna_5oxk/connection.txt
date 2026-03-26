@@ -1,0 +1,1 @@
+Driver={ODBC Driver 18 for SQL Server};Server=tcp:dataliticsdb.database.windows.net,1433;Database=sql-data;User ID=dataagent_user;Password=Arm03092001-7724188123-CameandoYi;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;

@@ -3,6 +3,11 @@
 Provides a local schema source independent of Azure AI Search (M3),
 allowing agents to function with full table/column/permission awareness
 by reading the dab-config.json files directly.
+
+Allowed-tables whitelist:
+    Each tenant can optionally restrict which tables are visible to the agent.
+    The whitelist is stored in dab/{tenant_id}/allowed_tables.json.
+    If the file does not exist, ALL tables are available (backward-compatible).
 """
 
 import json
@@ -13,6 +18,52 @@ logger = logging.getLogger("dataagent.core.schema_loader")
 
 # Base path for DAB configuration files
 DAB_CONFIG_DIR = Path(__file__).resolve().parent.parent.parent.parent / "dab"
+
+
+# ─── Allowed-tables helpers ───────────────────────────────────────────────────
+
+def load_allowed_tables_file(tenant_id: str) -> list[str] | None:
+    """Return the saved allowed-tables whitelist for a tenant, or None if not set.
+
+    Returns None (not an empty list) when the file is absent so callers can
+    distinguish "no restriction" from "all tables explicitly blocked".
+    """
+    path = DAB_CONFIG_DIR / tenant_id / "allowed_tables.json"
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("allowed_tables")
+    except Exception as exc:
+        logger.warning("Could not read allowed_tables.json for tenant %s: %s", tenant_id, exc)
+        return None
+
+
+def save_allowed_tables_file(tenant_id: str, allowed_tables: list[str]) -> None:
+    """Persist the allowed-tables whitelist to disk."""
+    path = DAB_CONFIG_DIR / tenant_id / "allowed_tables.json"
+    path.write_text(
+        json.dumps({"allowed_tables": allowed_tables}, indent=2),
+        encoding="utf-8",
+    )
+    logger.info("Saved allowed_tables for tenant=%s: %s", tenant_id, allowed_tables)
+
+
+def load_all_tenant_tables(tenant_id: str) -> list[str]:
+    """Return every table in the dab-config regardless of the allowed-tables whitelist.
+
+    Used by the admin panel to show ALL tables so the admin can re-enable
+    previously restricted ones.
+    """
+    config_path = DAB_CONFIG_DIR / tenant_id / "dab-config.json"
+    if not config_path.exists():
+        return []
+    try:
+        dab_config = json.loads(config_path.read_text(encoding="utf-8"))
+        return list(dab_config.get("entities", {}).keys())
+    except Exception as exc:
+        logger.warning("Could not read dab-config for tenant %s: %s", tenant_id, exc)
+        return []
 
 
 def load_tenant_schema(tenant_id: str) -> dict:
@@ -89,6 +140,18 @@ def load_tenant_schema(tenant_id: str) -> dict:
             "columns_excluded_by_role": columns_excluded_by_role,
             "columns": entity_config.get("_columns", []),
         }
+
+    # Apply allowed-tables whitelist (if configured by the admin)
+    whitelist = load_allowed_tables_file(tenant_id)
+    if whitelist is not None:
+        tables = {name: info for name, info in tables.items() if name in whitelist}
+        # Recompute restricted_by_role to only include allowed tables
+        restricted_by_role = {}
+        for table_info in tables.values():
+            for role, excluded in table_info["columns_excluded_by_role"].items():
+                if role not in restricted_by_role:
+                    restricted_by_role[role] = set()
+                restricted_by_role[role].update(excluded)
 
     return {
         "tenant_id": tenant_id,

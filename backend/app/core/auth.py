@@ -187,6 +187,55 @@ def _verify_development_light(token: str) -> dict:
         )
 
 
+# ─── Platform admin verification (no tenant_id required) ─────────────────────
+
+async def verify_platform_admin_token(token: str) -> dict:
+    """Verify token and confirm role is platform_admin.
+
+    Does NOT require tenant_id — platform admins have no tenant.
+
+    Returns:
+        dict with: uid, email, role.
+
+    Raises:
+        HTTPException(401): Token invalid/expired.
+        HTTPException(403): Not a platform_admin.
+    """
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing authentication token")
+
+    if _get_firebase_app() is not None or _firebase_configured:
+        try:
+            decoded_token = firebase_auth.verify_id_token(token)
+            role = decoded_token.get("role", "")
+            if role != "platform_admin":
+                raise HTTPException(status_code=403, detail="Platform admin role required")
+            return {
+                "uid": decoded_token.get("uid", ""),
+                "email": decoded_token.get("email", ""),
+                "role": "platform_admin",
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Platform admin token verification failed: %s", e)
+            raise HTTPException(status_code=401, detail="Invalid or expired token") from e
+    else:
+        # Dev mode
+        try:
+            data = json.loads(token)
+            if data.get("role") != "platform_admin":
+                raise HTTPException(status_code=403, detail="Platform admin role required")
+            uid = data.get("uid", "platform_dev")
+            return {
+                "uid": uid,
+                "email": data.get("email", f"{uid}@dev.local"),
+                "role": "platform_admin",
+            }
+        except (json.JSONDecodeError, KeyError):
+            raise HTTPException(status_code=401, detail="Invalid dev token")
+
+
 # ─── Set custom claims ────────────────────────────────────────────────────────
 
 async def set_user_claims(uid: str, claims: dict) -> bool:

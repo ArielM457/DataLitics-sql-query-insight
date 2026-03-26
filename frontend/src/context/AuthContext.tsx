@@ -28,7 +28,7 @@ import {
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-export type UserRole = "admin" | "analyst" | null;
+export type UserRole = "admin" | "analyst" | "platform_admin" | null;
 export type UserStatus = "active" | "pending" | "rejected" | null;
 
 interface AuthState {
@@ -97,7 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const claimsTenantId = tokenResult.claims.tenant_id as string | undefined;
       const claimsStatus = tokenResult.claims.status as UserStatus | undefined;
 
-      if (claimsRole) {
+      if (claimsRole === "platform_admin") {
+        // Platform admin: no tenant, always active
+        setRole("platform_admin");
+        setTenantId(null);
+        setStatus("active");
+      } else if (claimsRole) {
         // Production: use Firebase custom claims
         setRole(claimsRole);
         setTenantId(claimsTenantId ?? null);

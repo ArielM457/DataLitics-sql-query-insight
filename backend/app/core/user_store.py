@@ -188,6 +188,10 @@ class UserStore:
             if u.tenant_id == tenant_id
         ]
 
+    def get_all_users(self) -> list[dict]:
+        """Return all registered users across all tenants. Platform admin only."""
+        return [u.to_dict() for u in self._pending.values()]
+
     def update_user_status(self, uid: str, status: str) -> bool:
         if uid in self._pending:
             self._pending[uid].status = status

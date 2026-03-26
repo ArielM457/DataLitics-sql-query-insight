@@ -32,8 +32,29 @@ api.interceptors.request.use(
 // ─────────────────────────────────────────────────────────────────────────────
 // queryAgent — POST /query
 // ─────────────────────────────────────────────────────────────────────────────
-export async function queryAgent(question: string) {
-  const response = await api.post("/query", { question });
+export async function queryAgent(question: string, clarificationContext?: string) {
+  const response = await api.post("/query", {
+    question,
+    ...(clarificationContext ? { clarification_context: clarificationContext } : {}),
+  });
+  return response.data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// clarifyQuery — POST /query/clarify  (Extended Mode only)
+// ─────────────────────────────────────────────────────────────────────────────
+export interface ClarifyQuestion {
+  id: string;
+  text: string;
+  type: "yes_no" | "choice";
+  options?: string[];
+}
+
+export async function clarifyQuery(question: string): Promise<{
+  needs_clarification: boolean;
+  questions: ClarifyQuestion[];
+}> {
+  const response = await api.post("/query/clarify", { question });
   return response.data;
 }
 
@@ -126,6 +147,55 @@ export async function testConnection(connectionString: string) {
     connection_string: connectionString,
   });
   return response.data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// setOnboardingAllowedTables — PATCH /onboarding/allowed-tables
+// ─────────────────────────────────────────────────────────────────────────────
+export async function setOnboardingAllowedTables(
+  tenantId: string,
+  allowedTables: string[]
+) {
+  const response = await api.patch("/onboarding/allowed-tables", {
+    tenant_id: tenantId,
+    allowed_tables: allowedTables,
+  });
+  return response.data as {
+    status: string;
+    tenant_id: string;
+    allowed_tables: string[];
+    total_allowed: number;
+    total_available: number;
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// getAdminAllowedTables — GET /admin/allowed-tables
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getAdminAllowedTables() {
+  const response = await api.get("/admin/allowed-tables");
+  return response.data as {
+    tenant_id: string;
+    all_tables: string[];
+    allowed_tables: string[];
+    whitelist_configured: boolean;
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateAdminAllowedTables — PATCH /admin/allowed-tables
+// ─────────────────────────────────────────────────────────────────────────────
+export async function updateAdminAllowedTables(allowedTables: string[]) {
+  const response = await api.patch("/admin/allowed-tables", {
+    allowed_tables: allowedTables,
+  });
+  return response.data as {
+    status: string;
+    tenant_id: string;
+    allowed_tables: string[];
+    total_allowed: number;
+    total_available: number;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -278,6 +348,32 @@ export async function listSkills(agent?: string) {
     total: number;
     agents: string[];
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Platform Admin — Cross-tenant data (platform_admin role only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getPlatformUsers() {
+  const response = await api.get("/platform/users");
+  return response.data as Array<{
+    uid: string;
+    email: string;
+    name: string;
+    tenant_id: string;
+    company_name: string;
+    requested_at: number;
+    status: string;
+  }>;
+}
+
+export async function getPlatformCompanies() {
+  const response = await api.get("/platform/companies");
+  return response.data as Array<{
+    tenant_id: string;
+    company_name: string;
+    user_count: number;
+  }>;
 }
 
 export default api;
