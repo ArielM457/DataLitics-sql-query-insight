@@ -19,7 +19,8 @@
       "Bash(az --version)"
     ],
     "additionalDirectories": [
-      "s:\\Downloads"
+      "s:\\Downloads",
+      "f:\\Proyectos\\Proyecto-SQL-Insights\\DataLitics-sql-query-insight"
     ]
   }
 }

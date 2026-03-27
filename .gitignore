@@ -15,6 +15,7 @@ node_modules/
 out/
 dist/
 local.settings.json
+presentation/
 
 # Env y secretos — NUNCA en el repo
 .env
