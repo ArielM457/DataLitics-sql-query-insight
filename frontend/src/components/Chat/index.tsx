@@ -44,7 +44,7 @@ export interface Message {
   clarificationData?: {
     questions: ClarifyQuestion[];
     sessionKey: string;
-    language: string;
+    originalQuestion: string;
   };
 }
 
@@ -176,6 +176,20 @@ const BUBBLE_I18N: Record<string, { intro: string; yes: string; no: string; pend
     yes: "Sì", no: "No",
     pending: (n) => `${n} domanda${n !== 1 ? "e" : ""} in sospeso`,
   },
+}
+
+function detectLang(text: string): string {
+  const t = text.toLowerCase()
+  const scores: Record<string, number> = {
+    es: (t.match(/\b(que|de|la|el|los|las|un|una|por|para|con|del|al|es|son|dame|cuál|cuánto|más|ventas|producto|empresa|mes|año|cómo|qué|cuántos|último|hasta|ahora|tengo|quiero|cuales|fueron|mejor|peor)\b/g) || []).length,
+    en: (t.match(/\b(the|of|is|are|what|how|when|where|which|show|give|tell|my|was|were|have|has|been|sales|product|company|month|year|best|worst|top|total|last|current|get|list)\b/g) || []).length,
+    pt: (t.match(/\b(de|da|do|os|as|um|uma|por|para|com|que|são|quais|quanto|produto|empresa|vendas|mês|ano|melhor|pior|até|agora|quero|tenho)\b/g) || []).length,
+    fr: (t.match(/\b(le|la|les|de|du|des|un|une|pour|avec|qui|que|est|sont|quel|quelle|mois|année|produit|ventes|entreprise|meilleur|comment|combien)\b/g) || []).length,
+    de: (t.match(/\b(der|die|das|des|dem|ein|eine|für|mit|von|wie|was|ist|sind|welche|monat|jahr|produkt|verkauf|unternehmen|beste|wie|viel)\b/g) || []).length,
+    it: (t.match(/\b(il|la|le|di|da|un|una|per|con|che|è|sono|quale|quanto|mese|anno|prodotto|vendite|azienda|migliore|come|quanti)\b/g) || []).length,
+  }
+  const best = Object.entries(scores).reduce((a, b) => (b[1] > a[1] ? b : a), ["en", 0])
+  return best[1] > 0 ? best[0] : "en"
 }
 
 function getBubbleStrings(lang: string) {
@@ -358,14 +372,14 @@ function ModeToggle({
 
 function ClarificationBubble({
   questions,
-  language = "en",
+  originalQuestion = "",
   onComplete,
 }: {
   questions: ClarifyQuestion[];
-  language?: string;
+  originalQuestion?: string;
   onComplete: (answers: Record<string, string>) => void;
 }) {
-  const i18n = getBubbleStrings(language)
+  const i18n = getBubbleStrings(detectLang(originalQuestion))
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const handleAnswer = (questionId: string, answer: string) => {
@@ -491,7 +505,7 @@ function AssistantMessage({
     return (
       <ClarificationBubble
         questions={msg.clarificationData.questions}
-        language={msg.clarificationData.language}
+        originalQuestion={msg.clarificationData.originalQuestion}
         onComplete={(answers) =>
           onClarificationComplete?.(
             msg.clarificationData!.sessionKey,
@@ -840,7 +854,7 @@ export default function Chat({
               clarificationData: {
                 questions: clarifyResult.questions,
                 sessionKey,
-                language: clarifyResult.detected_language ?? "en",
+                originalQuestion: text,
               },
             },
           ]);
