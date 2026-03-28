@@ -22,6 +22,7 @@ presentation/
 *.env.local
 firebase-credentials.json
 *-credentials.json
+*-adminsdk.json
 *.pem
 *.key
 
