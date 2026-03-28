@@ -470,7 +470,7 @@ function AssistantMessage({
   const chartJustification = insights?.chart_justification as string | undefined;
 
   return (
-    <div className="bg-white border border-brand-light text-brand-deepest mr-8 p-4 rounded-2xl rounded-tl-sm space-y-3 shadow-card animate-fade-in overflow-hidden min-w-0 max-w-full">
+    <div className="bg-white border border-brand-light text-brand-deepest mr-8 p-4 rounded-2xl rounded-tl-sm space-y-3 shadow-card animate-fade-in overflow-hidden min-w-0 w-full">
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-brand-dark flex items-center justify-center">
           <Bot size={13} className="text-white" />
@@ -816,7 +816,7 @@ export default function Chat({
   const handleSend = () => handleSendText(input);
 
   return (
-    <div className="bg-white h-full flex flex-col overflow-hidden">
+    <div className="bg-white h-full w-full flex flex-col overflow-hidden min-w-0">
       {/* Extended Mode Info Modal */}
       {showModal && <ExtendedModeModal onClose={() => setShowModal(false)} />}
 
@@ -853,7 +853,7 @@ export default function Chat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3 p-4">
+      <div className="flex-1 min-w-0 w-full overflow-y-auto overflow-x-hidden space-y-3 p-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-brand-light flex items-center justify-center animate-float">

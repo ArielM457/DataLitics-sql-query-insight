@@ -207,7 +207,7 @@ export default function HomeContent() {
 
       {/* ── Main chat area ── */}
       <main
-        className={`ml-[260px] flex-1 flex flex-col relative transition-all duration-300 ${rightPanelOpen ? "mr-[300px]" : "mr-0"}`}
+        className={`ml-[260px] flex-1 min-w-0 overflow-hidden flex flex-col relative transition-all duration-300 ${rightPanelOpen ? "mr-[300px]" : "mr-0"}`}
         style={{
           backgroundImage:
             "radial-gradient(rgba(0,63,84,0.06) 1px, transparent 1px)",
