@@ -41,7 +41,7 @@ export default function AuthPage() {
       else if (status === "pending") router.replace("/pending");
       else router.replace("/home");
     }
-  }, [user, loading, status, router]);
+  }, [user, loading, status, role, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (

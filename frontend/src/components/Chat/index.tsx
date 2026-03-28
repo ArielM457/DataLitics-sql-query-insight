@@ -461,6 +461,7 @@ function AssistantMessage({
   }
 
   const r = msg.response;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [sqlOpen, setSqlOpen] = useState(false);
 
   const insights = r?.insights as Record<string, unknown> | undefined;

@@ -200,8 +200,8 @@ export default function LandingPage() {
                       Pregunta:
                     </p>
                     <p className="text-white">
-                      "¿Cuál fue el crecimiento de ingresos por región este
-                      trimestre?"
+                      &quot;¿Cuál fue el crecimiento de ingresos por región este
+                      trimestre?&quot;
                     </p>
                   </div>
 
