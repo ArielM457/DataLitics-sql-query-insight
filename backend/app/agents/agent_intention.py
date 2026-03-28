@@ -65,9 +65,11 @@ Rules:
 - Suggest the most appropriate SQL technique based on the analysis needed
 - Always output valid JSON — no markdown, no extra text
 - "detected_language": ISO 639-1 code of the question's language (e.g. "es", "en", "pt", "fr")
-- CRITICAL LANGUAGE RULE: Detect the language of the user's question and write ALL text fields
-  (mensaje_clarificacion, periodo, tecnica_sugerida) ENTIRELY in that same language.
-  If the question is in English → respond in English. In French → in French. Never mix languages.
+- CRITICAL LANGUAGE RULE: Carefully identify the language of the user's original question
+  and write ALL text fields (mensaje_clarificacion, periodo, tecnica_sugerida) ENTIRELY in that language.
+  If the question is in English → respond in English. In French → in French. In Indonesian → in Indonesian.
+  If the language is unclear or rare → default to ENGLISH. NEVER default to Spanish unless the user
+  actually wrote in Spanish. Do not assume Spanish based on context.
 """
 
 

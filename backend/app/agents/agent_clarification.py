@@ -52,9 +52,13 @@ Rules:
 - "choice" type: include 2-4 options (never more than 4)
 - Focus clarifications on: time period, breakdown/grouping, metric selection, comparison scope
 - "detected_language": ISO 639-1 code of the user's question language (e.g. "es", "en", "pt", "fr", "de")
-- CRITICAL: Write ALL text — question texts AND every option — in the EXACT SAME LANGUAGE
-  as the user's question. If the user asks in Spanish → everything in Spanish.
-  If in English → everything in English. If in Portuguese → everything in Portuguese. No exceptions.
+- CRITICAL LANGUAGE RULE: Write ALL text — question texts AND every option — in the EXACT SAME
+  LANGUAGE as the user's question. Analyze the user's words carefully to identify their language.
+  If the user writes in Spanish → everything in Spanish.
+  If in English → everything in English.
+  If in Indonesian/Malay → everything in Indonesian.
+  If the language is unclear or rare → default to ENGLISH, never default to Spanish.
+  DO NOT assume Spanish just because this is a data platform. Match the user's actual language.
 - Only ask questions that would genuinely change the SQL or analysis approach
 """
 
