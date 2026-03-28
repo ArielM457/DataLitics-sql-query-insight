@@ -101,9 +101,13 @@ Every query passes through five independent security layers:
 
 ## Connecting Your Database
 
-DataLitics connects to Microsoft SQL Server. During onboarding, provide:
+DataLitics connects to Microsoft SQL Server. During onboarding, provide your company's database credentials.
 
-| Field | Example |
+### Try It With the Live Demo Database
+
+A real Azure SQL database is available to test the full flow. Use these credentials when registering a new company in the app:
+
+| Field | Value |
 |---|---|
 | Company Name | `DataLitics` |
 | Server Host | `dataliticsdb.database.windows.net` |
@@ -111,6 +115,8 @@ DataLitics connects to Microsoft SQL Server. During onboarding, provide:
 | Username | `dataagent_user@dataliticsdb` |
 | Password | `Arm03092001-7724188123-CameandoYi` |
 | Port | `1433` |
+
+This database contains real sample data across sales, inventory, and finance — ready to query immediately after onboarding.
 
 At connection time, DataLitics automatically introspects the schema, detects sensitive columns, generates a DAB configuration with role-based restrictions, and indexes the schema into Azure AI Search. No manual configuration required.
 

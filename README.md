@@ -76,6 +76,21 @@ A pre-configured demo tenant with sample data is available. Register at [https:/
 
 DataLitics connects to **Microsoft SQL Server** databases (Azure SQL Database, Azure SQL Managed Instance, or on-premise SQL Server with network access).
 
+### Try It With the Live Demo Database
+
+A real Azure SQL database is available for evaluators to test the full onboarding and query flow. Use the credentials below when registering a new company in the application:
+
+| Field | Value |
+|---|---|
+| **Company Name** | `DataLitics` |
+| **SQL Server Host** | `dataliticsdb.database.windows.net` |
+| **Database Name** | `sql-data` |
+| **Username** | `dataagent_user@dataliticsdb` |
+| **Password** | `Arm03092001-7724188123-CameandoYi` |
+| **Port** | `1433` |
+
+This database contains real sample data across multiple business domains (sales, inventory, finance) and is ready to query immediately after onboarding.
+
 ### Required Connection Information
 
 During onboarding, an administrator provides the following:
