@@ -137,7 +137,7 @@ class InsightsAgent:
         # Extract column names from data
         columns = list(data_sample[0].keys()) if data_sample else []
 
-        user_message = f"""Original question: {question}
+        user_message = f"""Original question (detect the response language from this): {question}
 
 --- QUERY RESULTS ---
 Total rows: {data.get('rows', 0)}

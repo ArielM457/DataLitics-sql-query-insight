@@ -86,11 +86,12 @@ class IntentionAgent:
             api_version="2024-10-21",
         )
 
-    async def analyze(self, question: str, tenant_id: str, user_role: str) -> dict:
+    async def analyze(self, question: str, tenant_id: str, user_role: str, original_question: str = "") -> dict:
         """Analyze a natural language question and extract analytical intent.
 
         Args:
-            question: The user's natural language question.
+            question: The full question (may include clarification context).
+            original_question: The raw question without clarification context — used for language detection.
             tenant_id: The tenant identifier for multi-tenant isolation.
             user_role: The role of the user (analyst, manager, admin).
 
@@ -99,6 +100,9 @@ class IntentionAgent:
                   suggested technique, and clarification flags.
         """
         logger.info("Analyzing intention: tenant=%s, role=%s", tenant_id, user_role)
+
+        # Use original question for language detection when available
+        lang_reference = original_question.strip() if original_question.strip() else question
 
         # Gather context
         schema_desc = get_schema_description(tenant_id, user_role)
@@ -113,7 +117,9 @@ class IntentionAgent:
         )
         skills_context = skills_manager.format_skills_for_prompt(selected_skills)
 
-        user_message = f"""Question: {question}
+        user_message = f"""Original question (use this for language detection): {lang_reference}
+
+Full question with context: {question}
 
 --- DATABASE SCHEMA ---
 {schema_desc}
@@ -124,7 +130,7 @@ Restricted columns for role '{user_role}': {', '.join(restricted_cols) if restri
 --- ANALYSIS SKILLS ---
 {skills_context}
 
-Analyze the question and return the structured JSON intent.
+Analyze the question and return the structured JSON intent. Detect the language from the original question above.
 """
 
         response = await self._client.chat.completions.create(

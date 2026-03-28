@@ -112,7 +112,7 @@ async def execute_query(
         if request.clarification_context:
             effective_question = (
                 f"{request.question}\n\n"
-                f"Contexto adicional del usuario: {request.clarification_context}"
+                f"Additional user context: {request.clarification_context}"
             )
 
         logger.info(
@@ -131,9 +131,12 @@ async def execute_query(
         }
 
         # Step 2: Intention Analysis
+        # Use effective_question so the agent has the full clarification context,
+        # but also pass original question separately for language detection.
         stage_start = time.time()
         intention = await intention_agent.analyze(
             question=effective_question,
+            original_question=request.question,
             tenant_id=tenant_id,
             user_role=user_role,
         )
@@ -301,10 +304,12 @@ async def execute_query(
             )
 
         # Step 5: Insights Generation
+        # Pass original question (not effective_question) so GPT detects the user's language
+        # correctly, without being confused by the "Additional user context:" appended text.
         stage_start = time.time()
         insights = await insights_agent.generate(
             data=exec_result,
-            question=effective_question,
+            question=request.question,
             tenant_id=tenant_id,
         )
         trace["stages"]["insights"] = {
