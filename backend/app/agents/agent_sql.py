@@ -64,8 +64,9 @@ Your output MUST be a JSON object:
     "explanation": "Brief explanation of what this query does in simple language"
 }
 
-LANGUAGE: Always write the "explanation" field in the same language as the user's
-original question. SQL code and comments remain in English.
+CRITICAL LANGUAGE RULE: Detect the language of the user's original question and write the
+"explanation" field ENTIRELY in that same language. SQL code and comments remain in English.
+If the question is in English → explanation in English. In French → in French. Never mix languages.
 """
 
 CORRECTION_PROMPT = """The previous SQL query had an error. Please fix it.
@@ -281,8 +282,8 @@ Generate the SQL query as a JSON object with "sql" and "explanation" fields.
             return {
                 "blocked": True,
                 "block_reason": (
-                    f"Security check blocked this query: {result['attack_type']} detected. "
-                    f"Please rephrase your question without attempting to modify system behavior."
+                    f"Security check blocked this query ({result['attack_type']} detected). "
+                    f"Please rephrase your question."
                 ),
                 "block_type": "prompt_shields",
                 "security_events": security_events,
@@ -352,10 +353,9 @@ Generate the SQL query as a JSON object with "sql" and "explanation" fields.
         return {
             "blocked": True,
             "block_reason": (
-                f"No fue posible generar una consulta SQL válida después de "
-                f"{state.get('attempt', 0)} intentos. "
-                f"Último problema: {last_error}. "
-                f"¿Podrías reformular tu pregunta o ser más específico?"
+                f"Could not generate a valid SQL query after {state.get('attempt', 0)} attempts. "
+                f"Last issue: {last_error}. "
+                f"Please rephrase your question or be more specific."
             ),
             "block_type": "escalation",
         }

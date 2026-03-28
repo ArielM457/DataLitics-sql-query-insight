@@ -184,11 +184,14 @@ async def execute_query(
                 user_email=user_email,
                 uid=uid,
             )
+            out_of_domain_msg = intention.get("mensaje_clarificacion") or (
+                "This question is outside the scope of your available data."
+            )
             return QueryResponse(
                 sql="",
-                explanation="This question is outside the scope of your available data.",
+                explanation=out_of_domain_msg,
                 data=[],
-                insights={"summary": "Question is not related to the available data domain."},
+                insights={"summary": out_of_domain_msg},
                 security={"status": "out_of_domain"},
                 trace=trace,
             )
@@ -383,9 +386,12 @@ async def execute_query(
         logger.warning("Content filter blocked query: jailbreak=%s, tenant=%s", jailbreak_detected, _tenant)
         return QueryResponse(
             sql="",
-            explanation="Tu consulta fue bloqueada porque contiene un intento de manipulación del sistema." if jailbreak_detected else "Tu consulta fue bloqueada por política de contenido.",
+            explanation=(
+                "Query blocked: jailbreak attempt detected." if jailbreak_detected
+                else "Query blocked by content policy."
+            ),
             data=[],
-            insights={"summary": "Consulta bloqueada por seguridad."},
+            insights={"summary": "Query blocked for security reasons."},
             security={
                 "status": "blocked",
                 "block_type": "content_filter_jailbreak" if jailbreak_detected else "content_filter",

@@ -46,7 +46,8 @@ Your output MUST be a valid JSON object with this exact structure:
     "tecnica_sugerida": "SQL technique to use (e.g., GROUP BY, JOIN, window function)",
     "clarificacion_requerida": false,
     "mensaje_clarificacion": "",
-    "fuera_de_dominio": false
+    "fuera_de_dominio": false,
+    "detected_language": "es"
 }
 
 Rules:
@@ -63,8 +64,10 @@ Rules:
 - If the question is completely outside the data domain, set fuera_de_dominio to true
 - Suggest the most appropriate SQL technique based on the analysis needed
 - Always output valid JSON — no markdown, no extra text
-- LANGUAGE: Detect the language of the user's question and write all text fields
-  (mensaje_clarificacion, periodo, tecnica_sugerida) in that same language
+- "detected_language": ISO 639-1 code of the question's language (e.g. "es", "en", "pt", "fr")
+- CRITICAL LANGUAGE RULE: Detect the language of the user's question and write ALL text fields
+  (mensaje_clarificacion, periodo, tecnica_sugerida) ENTIRELY in that same language.
+  If the question is in English → respond in English. In French → in French. Never mix languages.
 """
 
 
@@ -148,8 +151,9 @@ Analyze the question and return the structured JSON intent.
                 "periodo": "",
                 "tecnica_sugerida": "",
                 "clarificacion_requerida": True,
-                "mensaje_clarificacion": "I could not understand the question. Please rephrase.",
+                "mensaje_clarificacion": "Could not understand the question. Please rephrase.",
                 "fuera_de_dominio": False,
+                "detected_language": "en",
             }
 
         # Validate tables against schema
@@ -170,19 +174,21 @@ Analyze the question and return the structured JSON intent.
 
         if unknown_tables and not intent.get("fuera_de_dominio"):
             intent["clarificacion_requerida"] = True
-            # Build a helpful mapping of available tables and their descriptions
+            # Build structured table list (data only — language-neutral)
             table_descriptions = []
             for t in schema["available_tables"]:
                 table_info = schema.get("tables", {}).get(t, {})
                 cols = table_info.get("columns", [])
                 col_names = [c["name"] for c in cols[:5]] if cols else []
-                col_hint = f" (contiene: {', '.join(col_names)}...)" if col_names else ""
+                col_hint = f" ({', '.join(col_names)}...)" if col_names else ""
                 table_descriptions.append(f"  - {t}{col_hint}")
             tables_list = "\n".join(table_descriptions)
+            # Keep GPT's language-aware message if it already addressed this,
+            # otherwise append structured table info to whatever GPT generated
+            existing_msg = intent.get("mensaje_clarificacion", "").strip()
+            tables_info = f"Available tables:\n{tables_list}"
             intent["mensaje_clarificacion"] = (
-                f"La tabla '{', '.join(unknown_tables)}' no existe en tu base de datos. "
-                f"Las tablas disponibles son:\n{tables_list}\n\n"
-                f"¿Podrías reformular tu pregunta usando alguna de estas tablas?"
+                f"{existing_msg}\n\n{tables_info}" if existing_msg else tables_info
             )
 
         intent["tablas"] = validated_tables
