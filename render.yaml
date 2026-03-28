@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: dataagent-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_URL
+        value: https://datalitics.vercel.app
+      - key: AZURE_OPENAI_ENDPOINT
+        value: https://eastus.api.cognitive.microsoft.com/
+      - key: AZURE_OPENAI_API_KEY
+        sync: false
+      - key: AZURE_OPENAI_DEPLOYMENT_NAME
+        value: gpt-4.1
+      - key: AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+        value: text-embedding-3-large
+      - key: AZURE_SEARCH_ENDPOINT
+        value: ""
+      - key: AZURE_SEARCH_KEY
+        value: ""
+      - key: AZURE_SEARCH_INDEX_BOOKS
+        value: books-index
+      - key: AZURE_SEARCH_INDEX_SCHEMA
+        value: schema-index
+      - key: AZURE_CONTENT_SAFETY_ENDPOINT
+        value: https://eastus.api.cognitive.microsoft.com/
+      - key: AZURE_CONTENT_SAFETY_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        value: battletanks-auth
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: SKILLS_FUNCTION_APP_URL
+        value: https://dataagent-skills.azurewebsites.net
+      - key: SKILLS_FUNCTION_KEY
+        sync: false
+      - key: DAB_BASE_URL
+        value: http://localhost:5000
