@@ -267,7 +267,7 @@ export default function ChartDisplay({
   };
 
   return (
-    <div className="mt-1 w-full rounded-xl border border-brand-light bg-white p-4 overflow-hidden">
+    <div className="mt-1 w-full min-w-0 rounded-xl border border-brand-light bg-white p-4 overflow-hidden">
       {/* Title */}
       {chartConfig.title && (
         <p className="text-sm font-semibold text-brand-deepest mb-3">
@@ -276,7 +276,7 @@ export default function ChartDisplay({
       )}
 
       {/* Chart type toggle */}
-      <div className="flex gap-1 mb-3">
+      <div className="flex flex-wrap gap-1 mb-3">
         {CHART_TYPES.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

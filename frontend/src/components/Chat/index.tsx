@@ -61,8 +61,8 @@ function DataTable({ data }: { data: Record<string, unknown>[] }) {
   if (!data || data.length === 0) return null;
   const columns = Object.keys(data[0]);
   return (
-    <div className="mt-3 w-full rounded-lg border border-brand-light overflow-auto" style={{ maxHeight: "260px" }}>
-      <table className="text-xs border-collapse" style={{ minWidth: "max-content", width: "100%" }}>
+    <div className="mt-3 max-w-full rounded-lg border border-brand-light overflow-x-auto" style={{ maxHeight: "260px" }}>
+      <table className="text-xs border-collapse" style={{ minWidth: "max-content" }}>
         <thead>
           <tr className="bg-brand-light">
             {columns.map((col) => (
@@ -882,11 +882,12 @@ export default function Chat({
               </div>
             </div>
           ) : (
-            <AssistantMessage
-              key={i}
-              msg={msg}
-              onClarificationComplete={handleClarificationComplete}
-            />
+            <div key={i} className="w-full min-w-0">
+              <AssistantMessage
+                msg={msg}
+                onClarificationComplete={handleClarificationComplete}
+              />
+            </div>
           )
         )}
 
