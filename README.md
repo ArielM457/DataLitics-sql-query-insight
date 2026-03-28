@@ -110,6 +110,14 @@ The connection string format is:
 mssql+pymssql://dataagent_user@dataliticsdb:Arm03092001-7724188123-CameandoYi@dataliticsdb.database.windows.net:1433/sql-data
 ```
 
+### Using Your Own Database
+
+If you want to connect your own SQL Server database instead of the demo one, make sure your Azure SQL Server firewall is configured to **allow connections from all IP addresses** (or at least from the backend server's IP). You can do this from the Azure Portal:
+
+> Azure Portal → SQL Server → Networking → Firewall rules → Enable **"Allow Azure services and resources to access this server"** and add a rule for `0.0.0.0` to `255.255.255.255`.
+
+Without this, the onboarding connection test will fail.
+
 ### What Happens at Connection Time
 
 Once the administrator submits the connection string, DataLitics automatically:

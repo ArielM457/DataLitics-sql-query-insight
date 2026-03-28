@@ -120,6 +120,14 @@ This database contains real sample data across sales, inventory, and finance —
 
 At connection time, DataLitics automatically introspects the schema, detects sensitive columns, generates a DAB configuration with role-based restrictions, and indexes the schema into Azure AI Search. No manual configuration required.
 
+### Using Your Own Database
+
+If you want to connect your own SQL Server database, make sure your Azure SQL Server firewall is configured to **allow connections from all IP addresses**. You can do this from the Azure Portal:
+
+> Azure Portal → SQL Server → Networking → Firewall rules → Enable **"Allow Azure services and resources to access this server"** and add a rule for `0.0.0.0` to `255.255.255.255`.
+
+Without this, the onboarding connection test will fail.
+
 ---
 
 ## Sample Questions
