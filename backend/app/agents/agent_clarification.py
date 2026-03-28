@@ -26,6 +26,7 @@ clarifying questions would meaningfully improve the analysis.
 Return a valid JSON object — nothing else:
 {
     "needs_clarification": true,
+    "detected_language": "en",
     "questions": [
         {
             "id": "q1",
@@ -36,19 +37,21 @@ Return a valid JSON object — nothing else:
             "id": "q2",
             "text": "Which period?",
             "type": "choice",
-            "options": ["Este mes", "Este año", "Últimos 30 días", "Todo el historial"]
+            "options": ["This month", "This year", "Last 30 days", "All history"]
         }
     ]
 }
 
 Rules:
-- If the question is already fully specific, return {"needs_clarification": false, "questions": []}
+- If the question is already fully specific, return {"needs_clarification": false, "detected_language": "en", "questions": []}
 - Maximum 3 questions — never more
 - Keep question text SHORT (max 10 words)
 - "yes_no" type: do NOT include "options" field
 - "choice" type: include 2-4 options (never more than 4)
 - Focus clarifications on: time period, breakdown/grouping, metric selection, comparison scope
-- LANGUAGE: always match the language of the user's question
+- "detected_language": ISO 639-1 code of the user's question language (e.g. "es", "en", "pt", "fr")
+- CRITICAL LANGUAGE RULE: detect the language of the user's question and write ALL text
+  (question texts AND choice options) ENTIRELY in that same language. Never mix languages.
 - Only ask questions that would genuinely change the SQL or analysis approach
 """
 
@@ -115,7 +118,7 @@ Return JSON only.
             result = json.loads(raw_content)
         except json.JSONDecodeError:
             logger.error("Failed to parse clarification JSON: %s", raw_content)
-            result = {"needs_clarification": False, "questions": []}
+            result = {"needs_clarification": False, "detected_language": "en", "questions": []}
 
         result.setdefault("needs_clarification", False)
         result.setdefault("questions", [])

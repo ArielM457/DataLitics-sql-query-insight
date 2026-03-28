@@ -44,6 +44,7 @@ export interface Message {
   clarificationData?: {
     questions: ClarifyQuestion[];
     sessionKey: string;
+    language: string;
   };
 }
 
@@ -140,7 +141,46 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 // Keys que se manejan con componentes dedicados, no como texto plano
-const SKIP_INSIGHT_KEYS = new Set(["chart_type", "chart_config", "chart_justification"]);
+const SKIP_INSIGHT_KEYS = new Set(["chart_type", "chart_config", "chart_justification"])
+
+// ─── i18n for ClarificationBubble ─────────────────────────────────────────────
+
+const BUBBLE_I18N: Record<string, { intro: string; yes: string; no: string; pending: (n: number) => string }> = {
+  es: {
+    intro: "Para darte un análisis más preciso, necesito un poco más de contexto:",
+    yes: "Sí", no: "No",
+    pending: (n) => `${n} pregunta${n !== 1 ? "s" : ""} pendiente${n !== 1 ? "s" : ""}`,
+  },
+  en: {
+    intro: "To give you a more precise analysis, I need a bit more context:",
+    yes: "Yes", no: "No",
+    pending: (n) => `${n} pending question${n !== 1 ? "s" : ""}`,
+  },
+  pt: {
+    intro: "Para te dar uma análise mais precisa, preciso de mais contexto:",
+    yes: "Sim", no: "Não",
+    pending: (n) => `${n} pergunta${n !== 1 ? "s" : ""} pendente${n !== 1 ? "s" : ""}`,
+  },
+  fr: {
+    intro: "Pour vous donner une analyse plus précise, j'ai besoin de plus de contexte :",
+    yes: "Oui", no: "Non",
+    pending: (n) => `${n} question${n !== 1 ? "s" : ""} en attente`,
+  },
+  de: {
+    intro: "Um eine präzisere Analyse zu liefern, benötige ich etwas mehr Kontext:",
+    yes: "Ja", no: "Nein",
+    pending: (n) => `${n} ausstehende Frage${n !== 1 ? "n" : ""}`,
+  },
+  it: {
+    intro: "Per darti un'analisi più precisa, ho bisogno di un po' più di contesto:",
+    yes: "Sì", no: "No",
+    pending: (n) => `${n} domanda${n !== 1 ? "e" : ""} in sospeso`,
+  },
+}
+
+function getBubbleStrings(lang: string) {
+  return BUBBLE_I18N[lang] ?? BUBBLE_I18N.en
+};
 
 // ─── FloatingModeHint ─────────────────────────────────────────────────────────
 
@@ -318,11 +358,14 @@ function ModeToggle({
 
 function ClarificationBubble({
   questions,
+  language = "en",
   onComplete,
 }: {
   questions: ClarifyQuestion[];
+  language?: string;
   onComplete: (answers: Record<string, string>) => void;
 }) {
+  const i18n = getBubbleStrings(language)
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const handleAnswer = (questionId: string, answer: string) => {
@@ -355,7 +398,7 @@ function ClarificationBubble({
       </div>
 
       <p className="text-sm text-brand-deepest/80">
-        Para darte un análisis más preciso, necesito un poco más de contexto:
+        {i18n.intro}
       </p>
 
       {/* Questions */}
@@ -379,7 +422,7 @@ function ClarificationBubble({
 
               {q.type === "yes_no" ? (
                 <div className="flex gap-2">
-                  {["Sí", "No"].map((opt) => (
+                  {[i18n.yes, i18n.no].map((opt) => (
                     <button
                       key={opt}
                       onClick={() => handleAnswer(q.id, opt)}
@@ -423,8 +466,7 @@ function ClarificationBubble({
 
       {remaining > 0 && (
         <p className="text-xs text-brand-mid">
-          {remaining} pregunta{remaining !== 1 ? "s" : ""} pendiente
-          {remaining !== 1 ? "s" : ""}
+          {i18n.pending(remaining)}
         </p>
       )}
     </div>
@@ -449,6 +491,7 @@ function AssistantMessage({
     return (
       <ClarificationBubble
         questions={msg.clarificationData.questions}
+        language={msg.clarificationData.language}
         onComplete={(answers) =>
           onClarificationComplete?.(
             msg.clarificationData!.sessionKey,
@@ -797,6 +840,7 @@ export default function Chat({
               clarificationData: {
                 questions: clarifyResult.questions,
                 sessionKey,
+                language: clarifyResult.detected_language ?? "en",
               },
             },
           ]);

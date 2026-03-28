@@ -52,6 +52,7 @@ export interface ClarifyQuestion {
 
 export async function clarifyQuery(question: string): Promise<{
   needs_clarification: boolean;
+  detected_language: string;
   questions: ClarifyQuestion[];
 }> {
   const response = await api.post("/query/clarify", { question });
