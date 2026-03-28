@@ -294,7 +294,11 @@ export default function ChartDisplay({
       </div>
 
       {/* Chart */}
-      {renderChart()}
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: "480px" }}>
+          {renderChart()}
+        </div>
+      </div>
 
       {/* Justification */}
       {justification && (
