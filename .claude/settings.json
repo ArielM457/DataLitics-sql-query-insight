@@ -16,7 +16,8 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(pkill -f \"node\")",
       "Bash(cmd //c \"taskkill /F /IM node.exe /T\")",
-      "Bash(az --version)"
+      "Bash(az --version)",
+      "Bash(.venv/Scripts/pip install:*)"
     ],
     "additionalDirectories": [
       "s:\\Downloads",

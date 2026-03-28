@@ -38,3 +38,5 @@ Thumbs.db
 # DAB
 dab-config.*.json
 !dab/*/dab-config.json
+
+.claude/
