@@ -82,17 +82,17 @@ During onboarding, an administrator provides the following:
 
 | Field | Description | Example |
 |---|---|---|
-| **Company Name** | Display name for your organization | `Acme Corp` |
-| **SQL Server Host** | Server address or Azure SQL endpoint | `myserver.database.windows.net` |
-| **Database Name** | Target database name | `sales_dw` |
-| **Username** | SQL authentication user | `datalitics_reader` |
-| **Password** | SQL authentication password | `*****` |
+| **Company Name** | Display name for your organization | `DataLitics` |
+| **SQL Server Host** | Server address or Azure SQL endpoint | `dataliticsdb.database.windows.net` |
+| **Database Name** | Target database name | `sql-data` |
+| **Username** | SQL authentication user | `dataagent_user@dataliticsdb` |
+| **Password** | SQL authentication password | `Arm03092001-7724188123-CameandoYi` |
 | **Port** | TCP port (default 1433) | `1433` |
 
 The connection string format is:
 
 ```
-mssql+pymssql://USERNAME:PASSWORD@HOST:PORT/DATABASE
+mssql+pymssql://dataagent_user@dataliticsdb:Arm03092001-7724188123-CameandoYi@dataliticsdb.database.windows.net:1433/sql-data
 ```
 
 ### What Happens at Connection Time

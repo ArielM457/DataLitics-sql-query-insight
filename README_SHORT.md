@@ -105,10 +105,11 @@ DataLitics connects to Microsoft SQL Server. During onboarding, provide:
 
 | Field | Example |
 |---|---|
-| Server Host | `myserver.database.windows.net` |
-| Database Name | `sales_dw` |
-| Username | `datalitics_reader` |
-| Password | `*****` |
+| Company Name | `DataLitics` |
+| Server Host | `dataliticsdb.database.windows.net` |
+| Database Name | `sql-data` |
+| Username | `dataagent_user@dataliticsdb` |
+| Password | `Arm03092001-7724188123-CameandoYi` |
 | Port | `1433` |
 
 At connection time, DataLitics automatically introspects the schema, detects sensitive columns, generates a DAB configuration with role-based restrictions, and indexes the schema into Azure AI Search. No manual configuration required.
