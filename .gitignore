@@ -30,6 +30,7 @@ firebase-credentials.json
 .vscode/
 .idea/
 *.swp
+.claude/
 
 # OS
 .DS_Store
@@ -38,5 +39,3 @@ Thumbs.db
 # DAB
 dab-config.*.json
 !dab/*/dab-config.json
-
-.claude/
