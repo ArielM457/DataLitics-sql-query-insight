@@ -64,11 +64,9 @@ Your output MUST be a JSON object:
     "explanation": "Brief explanation of what this query does in simple language"
 }
 
-CRITICAL LANGUAGE RULE: Carefully identify the language of the user's original question and write
-the "explanation" field ENTIRELY in that language. SQL code and comments remain in English.
-If the question is in English → explanation in English. In French → in French. In Indonesian → in Indonesian.
-If the language is unclear or rare → default to ENGLISH. NEVER default to Spanish unless the user
-actually wrote in Spanish. Do not assume Spanish based on context.
+CRITICAL LANGUAGE RULE: Detect the language of the user's original question and write the
+"explanation" field ENTIRELY in that same language. SQL code and comments remain in English.
+If the question is in English → explanation in English. In French → in French. Never mix languages.
 """
 
 CORRECTION_PROMPT = """The previous SQL query had an error. Please fix it.

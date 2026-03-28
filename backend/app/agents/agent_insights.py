@@ -76,13 +76,10 @@ Rules:
 - Always cite the source book and chapter for the chart justification
 - Suggest a follow-up question that deepens the analysis
 - Output valid JSON only — no markdown, no extra text
-- CRITICAL LANGUAGE RULE: Carefully identify the language of the user's original question and write
-  ALL text fields (summary, findings, recommendations, chart_justification, chart_config.title,
-  follow_up_question) ENTIRELY in that language.
-  If the question is in English → all text in English. In French → all text in French.
-  In Indonesian → all text in Indonesian.
-  If the language is unclear or rare → default to ENGLISH. NEVER default to Spanish unless the user
-  actually wrote in Spanish. Do not assume Spanish based on context.
+- CRITICAL LANGUAGE RULE: Detect the language of the user's original question and write ALL text
+  fields (summary, findings, recommendations, chart_justification, chart_config.title,
+  follow_up_question) ENTIRELY in that same language.
+  If the question is in English → all text in English. In French → all text in French. Never mix.
 
 CRITICAL — chart_config must use REAL DATA VALUES:
 - "labels" must contain the actual VALUES from the categorical/dimension column
